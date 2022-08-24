@@ -40,7 +40,7 @@ class CreateSite extends WP_CLI_Command
 	 */
 	public function create(array $args, array $assoc_args)
 	{
-
+		// Check PHP and node versions
 		$this->check_path($args[0]);
 		$this->download_nebula();
 		$this->create_repo();
@@ -150,6 +150,12 @@ class CreateSite extends WP_CLI_Command
 				'stability' => 'dev',
 			],
 			'eighteen73/pulsar',
+			escapeshellarg($this->install_directory . '/web/app/themes/pulsar'),
+		]);
+		$this->run_command([
+			'npm',
+			'install',
+			'--prefix',
 			escapeshellarg($this->install_directory . '/web/app/themes/pulsar'),
 		]);
 		$this->commit_repo('Add Pulsar theme');
