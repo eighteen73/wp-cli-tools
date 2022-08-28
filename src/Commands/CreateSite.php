@@ -42,10 +42,17 @@ class CreateSite extends WP_CLI_Command
 	{
 		// Check PHP and node versions
 		$this->check_path($args[0]);
+
+		$this->status_message('Installing WordPress...');
 		$this->download_nebula();
 		$this->create_repo();
-		$this->download_pulsar();
 		$this->install_wordpress();
+
+		$this->status_message('Installing theme...');
+		$this->download_pulsar();
+
+		$this->status_message('Installing default plugins...');
+		$this->install_plugins();
 
 		WP_CLI::line();
 		WP_CLI::line();
@@ -56,6 +63,15 @@ class CreateSite extends WP_CLI_Command
 		WP_CLI::line();
 		WP_CLI::line('Username: ' . $this->site_username);
 		WP_CLI::line('Password: ' . $this->site_password);
+	}
+
+	private function status_message(string $message)
+	{
+		WP_CLI::line();
+		WP_CLI::line(str_pad('', strlen($message) + 3, '*'));
+		WP_CLI::line("* {$message}");
+		WP_CLI::line(str_pad('', strlen($message) + 3, '*'));
+		WP_CLI::line();
 	}
 
 	private function check_path(string $site_name)
@@ -108,6 +124,7 @@ class CreateSite extends WP_CLI_Command
 				'working-dir' => escapeshellarg($this->install_directory),
 			],
 		]);
+		WP_CLI::line('   ... done');
 	}
 
 	private function create_repo()
@@ -158,7 +175,16 @@ class CreateSite extends WP_CLI_Command
 			'--prefix',
 			escapeshellarg($this->install_directory . '/web/app/themes/pulsar'),
 		]);
+		$this->run_wp([
+			'theme',
+			'activate',
+			'pulsar',
+			[
+				'path' => escapeshellarg($this->install_directory . '/web/wp'),
+			],
+		]);
 		$this->commit_repo('Add Pulsar theme');
+		WP_CLI::line('   ... done');
 	}
 
 	private function install_wordpress()
@@ -182,17 +208,79 @@ class CreateSite extends WP_CLI_Command
 		WP_CLI::out('> ');
 		$email = strtolower(trim(fgets(STDIN)));
 
-		// Maybe use https://make.wordpress.org/cli/handbook/references/internal-api/wp-cli-runcommand/
-		exec('wp --path=' . escapeshellarg($this->install_directory . '/web/wp') . ' core install --skip-email --url=' . escapeshellarg($this->site_url . '/web') . ' --title=' . escapeshellarg($this->site_name) . ' --admin_user=' . escapeshellarg($this->site_username) . ' --admin_email=' . escapeshellarg($email), $output);
-		exec('wp --path=' . escapeshellarg($this->install_directory . '/web/wp') . ' theme activate pulsar');
+		$output = $this->run_wp([
+			'core',
+			'install',
+			[
+				'path' => escapeshellarg($this->install_directory . '/web/wp'),
+				'skip-email' => null,
+				'url' => escapeshellarg($this->site_url . '/web'),
+				'title' => escapeshellarg($this->site_name),
+				'admin_user' => escapeshellarg($this->site_username),
+				'admin_email' => escapeshellarg($email),
+			],
+		]);
 
 		$this->site_password = '';
-		foreach ($output as $output_line) {
-			if (preg_match('/^Admin password: (.+)/', $output_line, $matches)) {
-				$this->site_password = trim($matches[1]);
-				break;
-			}
+		if (preg_match('/^Admin password: (.+)\s/', $output, $matches)) {
+			$this->site_password = trim($matches[1]);
 		}
+		WP_CLI::line('   ... done');
+	}
+
+	private function install_plugins()
+	{
+		$plugins = [
+			'always' => [
+				'wp-media/wp-rocket',
+				'wpackagist-plugin/duracelltomi-google-tag-manager',
+				'wpackagist-plugin/limit-login-attempts-reloaded',
+				'wpackagist-plugin/redirection',
+				'wpackagist-plugin/webp-express',
+				'wpackagist-plugin/wordpress-seo',
+			],
+			'dev' => [
+				'wpackagist-plugin/spatie-ray',
+			],
+		];
+
+		$this->run_command([
+			'composer',
+			'require',
+			[
+				'quiet' => null,
+				'working-dir' => escapeshellarg($this->install_directory),
+			],
+			implode(' ', $plugins['always']),
+		]);
+
+		$this->run_command([
+			'composer',
+			'require',
+			[
+				'quiet' => null,
+				'dev' => null,
+				'working-dir' => escapeshellarg($this->install_directory),
+			],
+			implode(' ', $plugins['dev']),
+		]);
+
+		$all_plugins = array_map(
+			fn(string $value) => substr($value, strpos($value, '/') + 1),
+			array_merge($plugins['always'], $plugins['dev'])
+		);
+		$this->run_wp([
+			'plugin',
+			'activate',
+			implode(' ', $all_plugins),
+			[
+				'path' => escapeshellarg($this->install_directory . '/web/wp'),
+			],
+		]);
+
+		$this->commit_repo('Add house plugins');
+
+		WP_CLI::line('   ... done');
 	}
 
 	private function run_command(array $command_parts)
@@ -214,5 +302,27 @@ class CreateSite extends WP_CLI_Command
 		$cmd = trim($cmd);
 		exec($cmd, $output, $result);
 		return $output;
+	}
+
+	private function run_wp(array $command_parts)
+	{
+		$cmd = '';
+		foreach ($command_parts as $part) {
+			if (is_string($part)) {
+				$cmd .= " {$part}";
+				continue;
+			}
+			foreach ($part as $param => $param_value) {
+				if ($param_value === null) {
+					$cmd .= " --{$param}";
+				} else {
+					$cmd .= " --{$param}={$param_value}";
+				}
+			}
+		}
+		$cmd = trim($cmd);
+		return WP_CLI::runcommand($cmd, [
+			'return' => true,
+		]);
 	}
 }
