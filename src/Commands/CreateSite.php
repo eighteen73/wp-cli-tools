@@ -179,9 +179,6 @@ class CreateSite extends WP_CLI_Command
 			'theme',
 			'activate',
 			'pulsar',
-			[
-				'path' => escapeshellarg($this->install_directory . '/web/wp'),
-			],
 		]);
 		$this->commit_repo('Add Pulsar theme');
 		WP_CLI::line('   ... done');
@@ -212,7 +209,6 @@ class CreateSite extends WP_CLI_Command
 			'core',
 			'install',
 			[
-				'path' => escapeshellarg($this->install_directory . '/web/wp'),
 				'skip-email' => null,
 				'url' => escapeshellarg($this->site_url . '/web'),
 				'title' => escapeshellarg($this->site_name),
@@ -273,9 +269,6 @@ class CreateSite extends WP_CLI_Command
 			'plugin',
 			'activate',
 			implode(' ', $all_plugins),
-			[
-				'path' => escapeshellarg($this->install_directory . '/web/wp'),
-			],
 		]);
 
 		$this->run_wp([
@@ -283,27 +276,18 @@ class CreateSite extends WP_CLI_Command
 			'add',
 			'limit_login_lockout_notify',
 			'""',
-			[
-				'path' => escapeshellarg($this->install_directory . '/web/wp'),
-			],
 		]);
 		$this->run_wp([
 			'option',
 			'add',
 			'limit_login_show_warning_badge',
 			'0',
-			[
-				'path' => escapeshellarg($this->install_directory . '/web/wp'),
-			],
 		]);
 		$this->run_wp([
 			'option',
 			'add',
 			'limit_login_hide_dashboard_widget',
 			'1',
-			[
-				'path' => escapeshellarg($this->install_directory . '/web/wp'),
-			],
 		]);
 		$this->run_wp([
 			'option',
@@ -312,7 +296,6 @@ class CreateSite extends WP_CLI_Command
 			'0',
 			[
 				'autoload' => 'yes',
-				'path' => escapeshellarg($this->install_directory . '/web/wp'),
 			],
 		]);
 
@@ -359,6 +342,7 @@ class CreateSite extends WP_CLI_Command
 			}
 		}
 		$cmd = trim($cmd);
+		$cmd .= ' --path=' . escapeshellarg($this->install_directory . '/web/wp');
 		return WP_CLI::runcommand($cmd, [
 			'return' => true,
 		]);
