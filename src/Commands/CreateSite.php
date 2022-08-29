@@ -278,6 +278,44 @@ class CreateSite extends WP_CLI_Command
 			],
 		]);
 
+		$this->run_wp([
+			'option',
+			'add',
+			'limit_login_lockout_notify',
+			'""',
+			[
+				'path' => escapeshellarg($this->install_directory . '/web/wp'),
+			],
+		]);
+		$this->run_wp([
+			'option',
+			'add',
+			'limit_login_show_warning_badge',
+			'0',
+			[
+				'path' => escapeshellarg($this->install_directory . '/web/wp'),
+			],
+		]);
+		$this->run_wp([
+			'option',
+			'add',
+			'limit_login_hide_dashboard_widget',
+			'1',
+			[
+				'path' => escapeshellarg($this->install_directory . '/web/wp'),
+			],
+		]);
+		$this->run_wp([
+			'option',
+			'add',
+			'limit_login_show_top_level_menu_item',
+			'0',
+			[
+				'autoload' => 'yes',
+				'path' => escapeshellarg($this->install_directory . '/web/wp'),
+			],
+		]);
+
 		$this->commit_repo('Add house plugins');
 
 		WP_CLI::line('   ... done');
