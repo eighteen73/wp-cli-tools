@@ -6,11 +6,31 @@ A collection of WP-CLI helpers for our team's development workflow.
 
 ## Installation
 
-_// Coming soon_
+Prerequisites:
 
-## New website setup
+- A global copy of [WP-CLI](https://make.wordpress.org/cli/handbook/guides/installing/)
 
-Our install command will install a fresh copy of WordPress (using our Nebula framework) with our Pulsar theme and other plugins that are part of our standard installation.
+To install the package run the following command:
+
+```shell
+wp package install eighteen73/wp-cli-tools
+```
+
+## Updates
+
+You should ensure that you are running the latest copy of the this package, especially before setting up new websites.
+
+To update the package run the following command:
+
+```shell
+wp package update
+```
+
+## Available Commands
+
+### `create`: Create new website
+
+Our install command will install a fresh copy of WordPress using our [Nebula](https://github.com/eighteen73/nebula) framework. It will also install our [Pulsar](https://github.com/eighteen73/pulsar) theme and other plugins that are part of our standard installation.
 
 It will interactively ask for installation details (e.g. database credentials) as needed.
 
