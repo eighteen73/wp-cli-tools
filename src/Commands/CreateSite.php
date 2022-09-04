@@ -231,6 +231,7 @@ class CreateSite extends WP_CLI_Command
 				'wp-media/wp-rocket',
 				'wpackagist-plugin/duracelltomi-google-tag-manager',
 				'wpackagist-plugin/limit-login-attempts-reloaded',
+				'wpackagist-plugin/mailgun',
 				'wpackagist-plugin/redirection',
 				'wpackagist-plugin/webp-express',
 				'wpackagist-plugin/wordpress-seo',
@@ -276,18 +277,27 @@ class CreateSite extends WP_CLI_Command
 			'add',
 			'limit_login_lockout_notify',
 			'""',
+			[
+				'autoload' => 'yes',
+			],
 		]);
 		$this->run_wp([
 			'option',
 			'add',
 			'limit_login_show_warning_badge',
 			'0',
+			[
+				'autoload' => 'yes',
+			],
 		]);
 		$this->run_wp([
 			'option',
 			'add',
 			'limit_login_hide_dashboard_widget',
 			'1',
+			[
+				'autoload' => 'yes',
+			],
 		]);
 		$this->run_wp([
 			'option',
@@ -295,6 +305,36 @@ class CreateSite extends WP_CLI_Command
 			'limit_login_show_top_level_menu_item',
 			'0',
 			[
+				'autoload' => 'yes',
+			],
+		]);
+		$this->run_wp([
+			'transient',
+			'delete',
+			'llar_welcome_redirect',
+		]);
+		$this->run_wp([
+			'option',
+			'add',
+			'mailgun',
+			escapeshellarg(json_encode([
+				'region' => 'eu',
+				'useAPI' => '1',
+				'domain' => 'site-email.com',
+				'apiKey' => '',
+				'username' => '',
+				'password' => '',
+				'secure' => '1',
+				'sectype' => 'ssl',
+				'track-clicks' => 'no',
+				'track-opens' => '1',
+				'from-address' => '',
+				'from-name' => '',
+				'override-from' => '0',
+				'campaign-id' => '',
+			])),
+			[
+				'format' => 'json',
 				'autoload' => 'yes',
 			],
 		]);
