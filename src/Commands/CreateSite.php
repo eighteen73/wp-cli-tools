@@ -217,6 +217,40 @@ class CreateSite extends WP_CLI_Command
 			],
 		]);
 
+		$this->run_wp([
+			'language',
+			'core',
+			'install',
+			'en_GB',
+		]);
+
+		$this->run_wp([
+			'site',
+			'switch-language',
+			'en_GB',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'blogdescription',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'date_format',
+			'"d/m/Y"',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'timezone_string',
+			'"Europe/London"',
+		]);
+
 		$this->site_password = '';
 		if (preg_match('/^Admin password: (.+)\s/', $output, $matches)) {
 			$this->site_password = trim($matches[1]);
