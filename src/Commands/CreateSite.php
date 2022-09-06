@@ -11,7 +11,7 @@ use WP_CLI_Command;
  * ## EXAMPLES
  *
  *     # Install a new WordPress website using Nebula and it's install wizard
- *     $ wp eighteen73 create foobar
+ *     $ wp eighteen73 create-site foobar
  *
  * @package eighteen73/wpi-cli-tools
  */
@@ -34,11 +34,11 @@ class CreateSite extends WP_CLI_Command
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp eighteen73 create foobar
+	 *     wp eighteen73 create-site foobar
 	 *
 	 * @when before_wp_load
 	 */
-	public function create(array $args, array $assoc_args)
+	public function __invoke(array $args, array $assoc_args)
 	{
 		// Check PHP and node versions
 		$this->check_path($args[0]);

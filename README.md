@@ -36,8 +36,8 @@ It will interactively ask for installation details (e.g. database credentials) a
 
 ```shell
 # Install under "foobar" in current directory
-wp eighteen73 create foobar
+wp eighteen73 create-site foobar
 
 # Install under "foobar", specifying full path
-wp eighteen73 create /home/joebloggs/foobar
+wp eighteen73 create-site /home/joebloggs/foobar
 ```
