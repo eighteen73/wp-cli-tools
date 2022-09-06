@@ -251,6 +251,83 @@ class CreateSite extends WP_CLI_Command
 			'"Europe/London"',
 		]);
 
+		$this->run_wp([
+			'option',
+			'update',
+			'default_ping_status',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'default_pingback_flag',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'comments_notify',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'default_comment_status',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'comment_moderation',
+			'1',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'comment_registration',
+			'1',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'moderation_notify',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'page_comments',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'comment_previously_approved',
+			'1',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'show_avatars',
+			'""',
+		]);
+
+		$this->run_wp([
+			'option',
+			'update',
+			'permalink_structure',
+			'"/%postname%/"',
+		]);
+
 		$this->site_password = '';
 		if (preg_match('/^Admin password: (.+)\s/', $output, $matches)) {
 			$this->site_password = trim($matches[1]);
