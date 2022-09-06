@@ -28,7 +28,7 @@ wp package update
 
 ## Available Commands
 
-### `create`: Create new website
+### `create-site`: Create new website
 
 Our install command will install a fresh copy of WordPress using our [Nebula](https://github.com/eighteen73/nebula) framework. It will also install our [Pulsar](https://github.com/eighteen73/pulsar) theme and other plugins that are part of our standard installation.
 
