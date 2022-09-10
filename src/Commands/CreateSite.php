@@ -6,7 +6,7 @@ use WP_CLI;
 use WP_CLI_Command;
 
 /**
- * Managed an eighteen73 WordPress installation.
+ * Handles a complete eighteen73 WordPress installation and configuration.
  *
  * ## EXAMPLES
  *

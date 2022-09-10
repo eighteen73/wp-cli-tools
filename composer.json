@@ -14,7 +14,7 @@
         "php": ">=7.4"
     },
     "require-dev": {
-        "eighteen73/phpcs-composer": "^v1.0.0",
+        "eighteen73/phpcs-composer": "^1.0.0",
         "wp-cli/wp-cli-bundle": "^2.6"
     },
     "config": {
