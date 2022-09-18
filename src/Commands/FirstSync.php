@@ -66,7 +66,7 @@ class FirstSync extends WP_CLI_Command {
 				'admin_password' => 'weakpassword',
 				'admin_email' => 'admin@example.com',
 			]
-		], true);
+		]);
 		if (preg_match('/already installed/', $response)) {
 			WP_CLI::error('WordPress is already installed. Use: `wp eighteen73 sync`');
 		} elseif (preg_match('/error/', $response)) {
