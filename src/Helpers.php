@@ -71,9 +71,13 @@ class Helpers
 		return self::wp_command($command, $working_dir);
 	}
 
-	public static function wp_update_option($key, $value, $working_dir = null)
+	public static function wp_update_option($key, $value, $working_dir = null, $json = false)
 	{
-		return self::wp_command('option update ' . $key . ' ' . $value, $working_dir);
+		$command = 'option update ' . $key . ' ' . $value;
+		if ($json) {
+			$command .= ' --format=json';
+		}
+		return self::wp_command($command, $working_dir);
 	}
 
 	private static function prepare_command($command)

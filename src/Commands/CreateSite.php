@@ -280,8 +280,35 @@ class CreateSite extends WP_CLI_Command
 
 	private function install_woocommerce()
 	{
-		Helpers::composer_command('require wpackagist-plugin/woocommerce', $this->install_directory);
-		Helpers::wp_command('plugin activate woocommerce', $this->wp_directory);
+		Helpers::composer_command('require wpackagist-plugin/woocommerce wpackagist-plugin/woocommerce-gateway-stripe', $this->install_directory);
+		Helpers::wp_command('plugin activate woocommerce woocommerce-gateway-stripe', $this->wp_directory);
+
+		// Options
+		Helpers::wp_update_option('woocommerce_default_country', 'GB', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_currency', 'GBP', $this->wp_directory);
+		Helpers::wp_add_option('woocommerce_onboarding_profile', escapeshellarg(json_encode(['skipped' => true])), true, $this->wp_directory, true);
+		Helpers::wp_add_option('woocommerce_task_list_prompt_shown', '0', true, $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_task_list_prompt_shown', '1', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_allowed_countries', 'specific', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_all_except_countries', escapeshellarg(json_encode([])), $this->wp_directory, true);
+		Helpers::wp_update_option('woocommerce_specific_allowed_countries', escapeshellarg(json_encode(['GB'])), $this->wp_directory, true);
+		Helpers::wp_update_option('woocommerce_specific_ship_to_countries', escapeshellarg(json_encode([])), $this->wp_directory, true);
+		Helpers::wp_update_option('woocommerce_calc_taxes', 'yes', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_enable_reviews', 'no', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_manage_stock', 'no', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_prices_include_tax', 'yes', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_shipping_tax_class', 'zero-rate', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_tax_display_shop', 'incl', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_tax_display_cart', 'incl', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_tax_total_display', 'single', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_enable_checkout_login_reminder', 'yes', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_enable_signup_and_login_from_checkout', 'yes', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_enable_myaccount_registration', 'yes', $this->wp_directory);
+		Helpers::wp_update_option('woocommerce_show_marketplace_suggestions', 'no', $this->wp_directory);
+		Helpers::wp_command('wc tax create --user=1 --country=GB --rate=20', $this->wp_directory);
+		Helpers::wp_command('wc tax create --user=1 --country=GB --rate=5 --class=reduced-rate', $this->wp_directory);
+		Helpers::wp_command('wc tax create --user=1 --country=GB --rate=0 --class=zero-rate', $this->wp_directory);
+
 		WP_CLI::line('   ... done');
 	}
 }
