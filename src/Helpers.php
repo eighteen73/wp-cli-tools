@@ -59,11 +59,14 @@ class Helpers
 		]);
 	}
 
-	public static function wp_add_option($key, $value, $autoload, $working_dir = null)
+	public static function wp_add_option($key, $value, $autoload, $working_dir = null, $json = false)
 	{
 		$command = 'option add ' . $key . ' ' . $value;
 		if ($autoload) {
 			$command .= ' --autoload=yes';
+		}
+		if ($json) {
+			$command .= ' --format=json';
 		}
 		return self::wp_command($command, $working_dir);
 	}

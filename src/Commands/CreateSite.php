@@ -245,37 +245,33 @@ class CreateSite extends WP_CLI_Command
 			fn(string $value) => substr($value, strpos($value, '/') + 1),
 			array_merge($plugins['always'], $plugins['dev'])
 		);
-
 		Helpers::wp_command('plugin activate ' . implode(' ', $all_plugins), $this->wp_directory);
+
+		// Limit login attempts
 		Helpers::wp_add_option('limit_login_lockout_notify', '""', true, $this->wp_directory);
 		Helpers::wp_add_option('limit_login_show_warning_badge', '0', true, $this->wp_directory);
 		Helpers::wp_add_option('limit_login_hide_dashboard_widget', '1', true, $this->wp_directory);
 		Helpers::wp_add_option('limit_login_show_top_level_menu_item', '0', true, $this->wp_directory);
 		Helpers::wp_command('transient delete llar_welcome_redirect', $this->wp_directory);
 
-		Helpers::wp_command([
-			'option add mailgun',
-			escapeshellarg(json_encode([
-				'region' => 'eu',
-				'useAPI' => '1',
-				'domain' => 'site-email.com',
-				'apiKey' => '',
-				'username' => '',
-				'password' => '',
-				'secure' => '1',
-				'sectype' => 'ssl',
-				'track-clicks' => 'no',
-				'track-opens' => '1',
-				'from-address' => '',
-				'from-name' => '',
-				'override-from' => '0',
-				'campaign-id' => '',
-			])),
-			[
-				'format' => 'json',
-				'autoload' => 'yes',
-			],
-		]);
+		// Mailgun
+		$value = escapeshellarg(json_encode([
+			'region' => 'eu',
+			'useAPI' => '1',
+			'domain' => 'site-email.com',
+			'apiKey' => '',
+			'username' => '',
+			'password' => '',
+			'secure' => '1',
+			'sectype' => 'ssl',
+			'track-clicks' => 'no',
+			'track-opens' => '1',
+			'from-address' => '',
+			'from-name' => '',
+			'override-from' => '0',
+			'campaign-id' => '',
+		]));
+		Helpers::wp_add_option('mailgun', $value, true, $this->wp_directory, true);
 
 		$this->commit_repo('Add house plugins');
 
