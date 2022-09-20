@@ -309,6 +309,8 @@ class CreateSite extends WP_CLI_Command
 		Helpers::wp_command('wc tax create --user=1 --country=GB --rate=5 --class=reduced-rate', $this->wp_directory);
 		Helpers::wp_command('wc tax create --user=1 --country=GB --rate=0 --class=zero-rate', $this->wp_directory);
 
+		$this->commit_repo('Add WooCommerce');
+
 		WP_CLI::line('   ... done');
 	}
 }
