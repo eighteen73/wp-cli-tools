@@ -86,9 +86,20 @@ EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS=plugin3
 #### Usage
 
 ```shell
-# Synchronise your website from a remote copy
+# Simple, just applies plugin overrides
 wp eighteen73 sync
+
+# Database mode, downloads a fresh copy of the remove database (overwriting all local data) and applies plugin overrides
+wp eighteen73 sync --database
+
+# Uploads mode, downloads a fresh copy of uploads directory (overwriting all local files) and applies plugin overrides
+wp eighteen73 sync --uploads
+
+# All of the above
+wp eighteen73 sync --database --uploads
 ```
+
+Note that `--uploads` is not necessary if you are using our [Satellite](https://github.com/eighteen73/satellite) plugin and it's remote files feature is enabled.
 
 ---
 
@@ -108,4 +119,3 @@ Clone the website's Git repository and run `composer install` as usual before ru
 # Initialise your website from a remote copy
 wp eighteen73 first-sync
 ```
-

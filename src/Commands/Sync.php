@@ -14,7 +14,7 @@ use WP_CLI_Command;
  * ## EXAMPLES
  *
  *     # Refresh the local website's database with the one from the remote website.
- *     $ wp eighteen73 sync
+ *     $ wp eighteen73 sync --database
  *
  * @package eighteen73/wpi-cli-tools
  */
@@ -83,8 +83,6 @@ class Sync extends WP_CLI_Command
 	 */
 	public function __invoke(array $args, array $assoc_args)
 	{
-
-
 		$version = Helpers::wp_command('core version');
 		if (empty($version)) {
 			WP_CLI::error('Not a WordPress directory');

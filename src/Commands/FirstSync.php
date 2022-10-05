@@ -51,7 +51,7 @@ class FirstSync extends WP_CLI_Command {
 		try {
 			$already_installed = Helpers::wp_command('core is-installed');
 		} catch (\Exception $e) {
-			WP_CLI::error('WordPress is already installed. Use `wp eighteen73 sync` instead.');
+			WP_CLI::error('WordPress is already installed. Use `wp eighteen73 sync --database` instead.');
 		}
 
 		/*
@@ -68,7 +68,7 @@ class FirstSync extends WP_CLI_Command {
 			]
 		]);
 		if (preg_match('/already installed/', $response)) {
-			WP_CLI::error('WordPress is already installed. Use: `wp eighteen73 sync`');
+			WP_CLI::error('WordPress is already installed. Use: `wp eighteen73 sync --database`');
 		} elseif (preg_match('/error/', $response)) {
 			WP_CLI::error('Please check your .env');
 		}
@@ -76,7 +76,7 @@ class FirstSync extends WP_CLI_Command {
 		/*
 		 * Invoke our regular database sync
 		 */
-		$response = Helpers::wp_command('eighteen73 sync');
+		$response = Helpers::wp_command('eighteen73 sync --database');
 
 		WP_CLI::success( 'All done!' );
 	}
