@@ -107,12 +107,16 @@ class Sync extends WP_CLI_Command
 
 		$this->get_options($assoc_args);
 
+		$done_something = false;
+
 		if ($this->options['database']) {
+			$done_something = true;
 			$this->fetch_database();
 			$this->enable_stripe_test_mode();
 		}
 
 		if ($this->options['uploads']) {
+			$done_something = true;
 			$this->fetch_uploads();
 		}
 
@@ -124,8 +128,13 @@ class Sync extends WP_CLI_Command
 			$this->deactivate_plugins();
 		}
 
+		if (!$done_something) {
+			WP_CLI::line();
+			WP_CLI::warning( 'You may have intended to run "wp eighteen73 sync --database" to update your local database.' );
+		}
+
 		WP_CLI::line();
-		WP_CLI::success('All done!');
+		WP_CLI::success( 'Complete' );
 	}
 
 	private function environment()

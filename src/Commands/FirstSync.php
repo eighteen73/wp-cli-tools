@@ -78,7 +78,7 @@ class FirstSync extends WP_CLI_Command {
 		 */
 		$response = Helpers::wp_command('eighteen73 sync --database');
 
-		WP_CLI::success( 'All done!' );
+		WP_CLI::success( 'Complete' );
 	}
 
 }
