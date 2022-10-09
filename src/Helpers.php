@@ -4,102 +4,97 @@ namespace Eighteen73\WP_CLI;
 
 use WP_CLI;
 
-class Helpers
-{
+class Helpers {
+
 	private static string $cwd;
 	private static string $wp_dir;
 
-	public static function paths()
-	{
-		self::$cwd = getcwd();
+	public static function paths() {
+		self::$cwd    = getcwd();
 		self::$wp_dir = self::$cwd . '/web/wp';
 	}
 
-	public static function cli_command($command)
-	{
-		$command = self::prepare_command($command);
+	public static function cli_command( $command ) {
+		$command = self::prepare_command( $command );
 		// WP_CLI::line($command);
-		exec($command, $output, $result);
+		exec( $command, $output, $result );
 		return $output;
 	}
 
-	public static function git_command($command, $working_dir = null)
-	{
+	public static function git_command( $command, $working_dir = null ) {
 		self::paths();
 		$full_command = 'git';
-		if ($working_dir) {
-			$full_command .= ' -C ' . escapeshellarg($working_dir);
+		if ( $working_dir ) {
+			$full_command .= ' -C ' . escapeshellarg( $working_dir );
 		}
-		$full_command .= ' ' . self::prepare_command($command);
-		return self::cli_command($full_command);
+		$full_command .= ' ' . self::prepare_command( $command );
+		return self::cli_command( $full_command );
 	}
 
-	public static function composer_command($command, $working_dir = null, $quiet = true)
-	{
+	public static function composer_command( $command, $working_dir = null, $quiet = true ) {
 		self::paths();
-		$command = 'composer ' . self::prepare_command($command);
-		if ($working_dir) {
-			$command .= ' --working-dir=' . escapeshellarg($working_dir);
+		$command = 'composer ' . self::prepare_command( $command );
+		if ( $working_dir ) {
+			$command .= ' --working-dir=' . escapeshellarg( $working_dir );
 		}
-		if ($quiet) {
+		if ( $quiet ) {
 			$command .= ' --quiet';
 		}
-		return self::cli_command($command);
+		return self::cli_command( $command );
 	}
 
-	public static function wp_command($command, $working_dir = null, $return = true)
-	{
+	public static function wp_command( $command, $working_dir = null, $return = true ) {
 		self::paths();
-		$path = $working_dir ?? self::$wp_dir;
-		$command = self::prepare_command($command) . ' --path=' . escapeshellarg($path);
+		$path    = $working_dir ?? self::$wp_dir;
+		$command = self::prepare_command( $command ) . ' --path=' . escapeshellarg( $path );
 		// WP_CLI::line($command);
-		return WP_CLI::runcommand($command, [
-			'exit_error' => false,
-			'return' => $return,
-		]);
+		return WP_CLI::runcommand(
+			$command,
+			[
+				'exit_error' => false,
+				'return'     => $return,
+			]
+		);
 	}
 
-	public static function wp_add_option($key, $value, $autoload, $working_dir = null, $json = false)
-	{
+	public static function wp_add_option( $key, $value, $autoload, $working_dir = null, $json = false ) {
 		$command = 'option add ' . $key . ' ' . $value;
-		if ($autoload) {
+		if ( $autoload ) {
 			$command .= ' --autoload=yes';
 		}
-		if ($json) {
+		if ( $json ) {
 			$command .= ' --format=json';
 		}
-		return self::wp_command($command, $working_dir);
+		return self::wp_command( $command, $working_dir );
 	}
 
-	public static function wp_update_option($key, $value, $working_dir = null, $json = false)
-	{
+	public static function wp_update_option( $key, $value, $working_dir = null, $json = false ) {
 		$command = 'option update ' . $key . ' ' . $value;
-		if ($json) {
+		if ( $json ) {
 			$command .= ' --format=json';
 		}
-		return self::wp_command($command, $working_dir);
+		return self::wp_command( $command, $working_dir );
 	}
 
-	private static function prepare_command($command)
-	{
-		if (is_string($command)) {
-			$command = [$command];
+	private static function prepare_command( $command ) {
+		if ( is_string( $command ) ) {
+			$command = [ $command ];
 		}
 
 		$cmd = '';
-		foreach ($command as $part) {
-			if (is_string($part)) {
+		foreach ( $command as $part ) {
+			if ( is_string( $part ) ) {
 				$cmd .= " {$part}";
 				continue;
 			}
-			foreach ($part as $param => $param_value) {
-				if ($param_value === null) {
+			foreach ( $part as $param => $param_value ) {
+				if ( $param_value === null ) {
 					$cmd .= " --{$param}";
 				} else {
 					$cmd .= " --{$param}={$param_value}";
 				}
 			}
 		}
-		return trim($cmd);
+		return trim( $cmd );
 	}
 }

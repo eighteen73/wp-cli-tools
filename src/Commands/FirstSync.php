@@ -40,43 +40,45 @@ class FirstSync extends WP_CLI_Command {
 		 * Check for WordPress
 		 * A wp-cli version check  confirms that `composer install` has been run too
 		 */
-		$version = Helpers::wp_command('core version');
-		if (empty($version)) {
-			WP_CLI::error('Not a WordPress directory');
+		$version = Helpers::wp_command( 'core version' );
+		if ( empty( $version ) ) {
+			WP_CLI::error( 'Not a WordPress directory' );
 		}
 
 		/*
 		 * Check if it's already installed
 		 */
 		try {
-			$already_installed = Helpers::wp_command('core is-installed');
-		} catch (\Exception $e) {
-			WP_CLI::error('WordPress is already installed. Use `wp eighteen73 sync --database` instead.');
+			$already_installed = Helpers::wp_command( 'core is-installed' );
+		} catch ( \Exception $e ) {
+			WP_CLI::error( 'WordPress is already installed. Use `wp eighteen73 sync --database` instead.' );
 		}
 
 		/*
 		 * This is just so we can run `wp eighteen73 sync`, so the weak credentials are never actually used
 		 */
-		$response = Helpers::wp_command([
-			'core install',
+		$response = Helpers::wp_command(
 			[
-				'url' => 'example.com',
-				'title' => 'Example',
-				'admin_user' => 'admin',
-				'admin_password' => 'weakpassword',
-				'admin_email' => 'admin@example.com',
+				'core install',
+				[
+					'url'            => 'example.com',
+					'title'          => 'Example',
+					'admin_user'     => 'admin',
+					'admin_password' => 'weakpassword',
+					'admin_email'    => 'admin@example.com',
+				],
 			]
-		]);
-		if (preg_match('/already installed/', $response)) {
-			WP_CLI::error('WordPress is already installed. Use: `wp eighteen73 sync --database`');
-		} elseif (preg_match('/error/', $response)) {
-			WP_CLI::error('Please check your .env');
+		);
+		if ( preg_match( '/already installed/', $response ) ) {
+			WP_CLI::error( 'WordPress is already installed. Use: `wp eighteen73 sync --database`' );
+		} elseif ( preg_match( '/error/', $response ) ) {
+			WP_CLI::error( 'Please check your .env' );
 		}
 
 		/*
 		 * Invoke our regular database sync
 		 */
-		$response = Helpers::wp_command('eighteen73 sync --database');
+		$response = Helpers::wp_command( 'eighteen73 sync --database' );
 
 		WP_CLI::success( 'Complete' );
 	}
