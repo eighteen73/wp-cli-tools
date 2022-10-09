@@ -1,26 +1,62 @@
 <?php
+/**
+ * Useful methods that are used across many commands
+ *
+ * @package eighteen73/wpi-cli-tools
+ */
 
 namespace Eighteen73\WP_CLI;
 
 use WP_CLI;
 
+/**
+ * Useful methods that are used across many commands
+ */
 class Helpers {
 
+	/**
+	 * Current working directory
+	 *
+	 * @var string
+	 */
 	private static string $cwd;
+
+	/**
+	 * WordPress directory
+	 *
+	 * @var string
+	 */
 	private static string $wp_dir;
 
+	/**
+	 * Find the important directory paths
+	 *
+	 * @return void
+	 */
 	public static function paths() {
 		self::$cwd    = getcwd();
 		self::$wp_dir = self::$cwd . '/web/wp';
 	}
 
+	/**
+	 * Run a command on the CLI
+	 *
+	 * @param string $command Command
+	 * @return mixed
+	 */
 	public static function cli_command( $command ) {
 		$command = self::prepare_command( $command );
-		// WP_CLI::line($command);
 		exec( $command, $output, $result );
 		return $output;
 	}
 
+	/**
+	 * Run and Git command
+	 *
+	 * @param string $command Command
+	 * @param string $working_dir Path
+	 * @return mixed
+	 */
 	public static function git_command( $command, $working_dir = null ) {
 		self::paths();
 		$full_command = 'git';
@@ -31,6 +67,14 @@ class Helpers {
 		return self::cli_command( $full_command );
 	}
 
+	/**
+	 * Run a composer command
+	 *
+	 * @param string $command Command
+	 * @param string $working_dir Path
+	 * @param bool   $quiet No output
+	 * @return mixed
+	 */
 	public static function composer_command( $command, $working_dir = null, $quiet = true ) {
 		self::paths();
 		$command = 'composer ' . self::prepare_command( $command );
@@ -43,11 +87,18 @@ class Helpers {
 		return self::cli_command( $command );
 	}
 
+	/**
+	 * Wun a WP-CLI command
+	 *
+	 * @param string $command Command
+	 * @param string $working_dir Path
+	 * @param bool   $return Return the response
+	 * @return int|mixed|object|null
+	 */
 	public static function wp_command( $command, $working_dir = null, $return = true ) {
 		self::paths();
 		$path    = $working_dir ?? self::$wp_dir;
 		$command = self::prepare_command( $command ) . ' --path=' . escapeshellarg( $path );
-		// WP_CLI::line($command);
 		return WP_CLI::runcommand(
 			$command,
 			[
@@ -57,6 +108,16 @@ class Helpers {
 		);
 	}
 
+	/**
+	 * Add an option to the website
+	 *
+	 * @param string $key Option key
+	 * @param string $value Option value
+	 * @param bool   $autoload Is autoload
+	 * @param string $working_dir Path
+	 * @param bool   $json Is JSON
+	 * @return int|mixed|object|null
+	 */
 	public static function wp_add_option( $key, $value, $autoload, $working_dir = null, $json = false ) {
 		$command = 'option add ' . $key . ' ' . $value;
 		if ( $autoload ) {
@@ -68,6 +129,15 @@ class Helpers {
 		return self::wp_command( $command, $working_dir );
 	}
 
+	/**
+	 * Update and existing an option on the website
+	 *
+	 * @param string $key Option key
+	 * @param string $value Option value
+	 * @param string $working_dir Path
+	 * @param bool   $json Is JSON
+	 * @return int|mixed|object|null
+	 */
 	public static function wp_update_option( $key, $value, $working_dir = null, $json = false ) {
 		$command = 'option update ' . $key . ' ' . $value;
 		if ( $json ) {
@@ -76,6 +146,12 @@ class Helpers {
 		return self::wp_command( $command, $working_dir );
 	}
 
+	/**
+	 * Prepare a command and it's options for execution
+	 *
+	 * @param mixed $command Command parts
+	 * @return string
+	 */
 	private static function prepare_command( $command ) {
 		if ( is_string( $command ) ) {
 			$command = [ $command ];

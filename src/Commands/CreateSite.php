@@ -1,4 +1,9 @@
 <?php
+/**
+ * Handles a complete eighteen73 WordPress installation and configuration
+ *
+ * @package eighteen73/wpi-cli-tools
+ */
 
 namespace Eighteen73\WP_CLI\Commands;
 
@@ -18,13 +23,53 @@ use WP_CLI_Command;
  */
 class CreateSite extends WP_CLI_Command {
 
+	/**
+	 * Installation directory
+	 *
+	 * @var string
+	 */
 	private string $install_directory;
+
+	/**
+	 * WordPress directory
+	 *
+	 * @var string
+	 */
 	private string $wp_directory;
+
+	/**
+	 * Website name
+	 *
+	 * @var string
+	 */
 	private string $site_name;
+
+	/**
+	 * Website URL
+	 *
+	 * @var string
+	 */
 	private string $site_url;
+
+	/**
+	 * Admin username
+	 *
+	 * @var string
+	 */
 	private string $site_username;
+
+	/**
+	 * Admin password
+	 *
+	 * @var string
+	 */
 	private string $site_password;
 
+	/**
+	 * Installation options
+	 *
+	 * @var array|false[]
+	 */
 	private array $options = [
 		'woocommerce' => false,
 	];
@@ -47,6 +92,9 @@ class CreateSite extends WP_CLI_Command {
 	 *     wp eighteen73 create-site foobar
 	 *
 	 * @when before_wp_load
+	 *
+	 * @param array $args Arguments
+	 * @param array $assoc_args Arguments
 	 */
 	public function __invoke( array $args, array $assoc_args ) {
 		// Check options
@@ -82,6 +130,12 @@ class CreateSite extends WP_CLI_Command {
 		WP_CLI::line( 'Password: ' . $this->site_password );
 	}
 
+	/**
+	 * Output consistently formatted messages to the user
+	 *
+	 * @param string $message Text to output
+	 * @return void
+	 */
 	private function status_message( string $message ) {
 		WP_CLI::line();
 		WP_CLI::line( str_pad( '', strlen( $message ) + 3, '*' ) );
@@ -90,6 +144,12 @@ class CreateSite extends WP_CLI_Command {
 		WP_CLI::line();
 	}
 
+	/**
+	 * Validation the user's options
+	 *
+	 * @param array $assoc_args Arguments
+	 * @return void
+	 */
 	private function check_args( array $assoc_args ) {
 		if ( isset( $assoc_args['woocommerce'] ) && $assoc_args['woocommerce'] === true ) {
 			$this->options['woocommerce'] = true;
@@ -98,6 +158,12 @@ class CreateSite extends WP_CLI_Command {
 		}
 	}
 
+	/**
+	 * Check the project's paths
+	 *
+	 * @param string $site_name Website name
+	 * @return void
+	 */
 	private function check_path( string $site_name ) {
 		if ( preg_match( '/^\//', $site_name ) ) {
 			$this->install_directory = rtrim( $site_name, '/' );
@@ -129,22 +195,43 @@ class CreateSite extends WP_CLI_Command {
 
 	}
 
+	/**
+	 * Download our Nebula WordPress framework
+	 *
+	 * @return void
+	 */
 	private function download_nebula() {
 		Helpers::composer_command( 'create-project eighteen73/nebula ' . escapeshellarg( $this->install_directory ) . ' --stability=dev', null, false );
 		Helpers::composer_command( 'update', $this->install_directory );
 		WP_CLI::line( '   ... done' );
 	}
 
+	/**
+	 * Create a fresh Git repo
+	 *
+	 * @return void
+	 */
 	private function create_repo() {
 		Helpers::git_command( 'init', $this->install_directory );
 		$this->commit_repo( 'Initial commit' );
 	}
 
+	/**
+	 * Make a Git commit
+	 *
+	 * @param string $message Commit message
+	 * @return void
+	 */
 	private function commit_repo( string $message ) {
 		Helpers::git_command( 'add .', $this->install_directory );
 		Helpers::git_command( 'commit -m ' . escapeshellarg( $message ), $this->install_directory );
 	}
 
+	/**
+	 * Download our Pulsar WordPress theme
+	 *
+	 * @return void
+	 */
 	private function download_pulsar() {
 		Helpers::composer_command( 'create-project eighteen73/pulsar ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) . ' --stability=dev' );
 		Helpers::cli_command( 'npm install --prefix ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) );
@@ -153,6 +240,11 @@ class CreateSite extends WP_CLI_Command {
 		WP_CLI::line( '   ... done' );
 	}
 
+	/**
+	 * Install WordPress
+	 *
+	 * @return void
+	 */
 	private function install_wordpress() {
 		$fp = @fopen( $this->install_directory . '/.env', 'r' );
 		while ( ( $buffer = fgets( $fp, 4096 ) ) !== false ) {
@@ -215,6 +307,11 @@ class CreateSite extends WP_CLI_Command {
 		WP_CLI::line( '   ... done' );
 	}
 
+	/**
+	 * Install our preferred plugins
+	 *
+	 * @return void
+	 */
 	private function install_plugins() {
 		$plugins = [
 			'always' => [
@@ -275,6 +372,11 @@ class CreateSite extends WP_CLI_Command {
 		WP_CLI::line( '   ... done' );
 	}
 
+	/**
+	 * Install and configure WooCommerce
+	 *
+	 * @return void
+	 */
 	private function install_woocommerce() {
 		Helpers::composer_command( 'require wpackagist-plugin/woocommerce wpackagist-plugin/woocommerce-gateway-stripe', $this->install_directory );
 		Helpers::wp_command( 'plugin activate woocommerce woocommerce-gateway-stripe', $this->wp_directory );

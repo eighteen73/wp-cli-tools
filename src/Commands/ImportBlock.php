@@ -1,19 +1,40 @@
 <?php
+/**
+ * Import a custom block's scaffolding into Pulsar
+ *
+ * @package eighteen73/wpi-cli-tools
+ */
 
 namespace Eighteen73\WP_CLI\Commands;
 
 use WP_CLI;
 
+/**
+ * Import a custom block's scaffolding into Pulsar
+ */
 class ImportBlock {
 
+	/**
+	 * All available blocks
+	 *
+	 * @var array
+	 */
 	private array $all_blocks = [];
 
+	/**
+	 * Constructor
+	 */
 	public function __construct() {
-		 $this->getAvailableBlocks();
+		$this->get_available_blocks();
 	}
 
+	/**
+	 * Copy the block's code into the theme
+	 *
+	 * @return void
+	 */
 	public function add() {
-		 $blocks = $this->askUserForBlocks();
+		$blocks = $this->ask_user_for_blocks();
 
 		// TODO Confirm a Pulsar theme is active
 		// TODO Copy each block into the theme
@@ -25,15 +46,25 @@ class ImportBlock {
 		}
 	}
 
-	private function getAvailableBlocks() {
-		 // TODO Replace with real logic
+	/**
+	 * Detect all available blocks
+	 *
+	 * @return void
+	 */
+	private function get_available_blocks() {
+		// TODO Replace with real logic
 		$this->all_blocks = [
 			'carousel',
 			'carousel-slide',
 		];
 	}
 
-	private function askUserForBlocks(): array {
+	/**
+	 * Ask the user which block(s) they want
+	 *
+	 * @return array
+	 */
+	private function ask_user_for_blocks(): array {
 		WP_CLI::line( 'Available blocks:' );
 		foreach ( $this->all_blocks as $block ) {
 			WP_CLI::line( '  ' . $block );
@@ -51,7 +82,8 @@ class ImportBlock {
 			$blocks = array_filter( array_unique( $blocks ) );
 			sort( $blocks );
 			$valid_blocks = (array) array_intersect( $blocks, $this->all_blocks );
-		} while ( ! count( $blocks ) || $blocks !== $valid_blocks );
+			$num_blocks   = count( $blocks );
+		} while ( ! $num_blocks || $blocks !== $valid_blocks );
 		return $blocks;
 	}
 }

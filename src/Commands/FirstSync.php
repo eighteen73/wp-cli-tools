@@ -1,4 +1,9 @@
 <?php
+/**
+ * Set up a local website using data from a remote source
+ *
+ * @package eighteen73/wpi-cli-tools
+ */
 
 namespace Eighteen73\WP_CLI\Commands;
 
@@ -33,9 +38,11 @@ class FirstSync extends WP_CLI_Command {
 	 *     wp eighteen73 first-sync
 	 *
 	 * @when before_wp_load
+	 *
+	 * @param array $args Arguments
+	 * @param array $assoc_args Arguments
 	 */
 	public function __invoke( array $args, array $assoc_args ) {
-
 		/*
 		 * Check for WordPress
 		 * A wp-cli version check  confirms that `composer install` has been run too

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Get a remote website's database and files
+ *
+ * @package eighteen73/wpi-cli-tools
+ */
 
 namespace Eighteen73\WP_CLI\Commands;
 
@@ -9,7 +14,7 @@ use WP_CLI;
 use WP_CLI_Command;
 
 /**
- * Get a remote website's database.
+ * Get a remote website's database and files.
  *
  * ## EXAMPLES
  *
@@ -80,6 +85,9 @@ class Sync extends WP_CLI_Command {
 	 *     wp eighteen73 sync
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments
+	 * @param array $assoc_args Arguments
 	 */
 	public function __invoke( array $args, array $assoc_args ) {
 		$version = Helpers::wp_command( 'core version' );
@@ -136,6 +144,11 @@ class Sync extends WP_CLI_Command {
 		WP_CLI::success( 'Complete' );
 	}
 
+	/**
+	 * Get the current environment
+	 *
+	 * @return array|false|string
+	 */
 	private function environment() {
 		if ( defined( 'WP_ENV' ) ) {
 			return getenv( 'WP_ENV' );
@@ -257,7 +270,7 @@ class Sync extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function find_remote_wp() {
-		 // Possible `wp` locations, with the most preferable ones first
+		// Possible `wp` locations, with the most preferable ones first
 		$possible_paths = [
 			"{$this->settings['ssh_path']}/vendor/bin/wp",
 			'/usr/local/bin/wp',
@@ -332,7 +345,7 @@ class Sync extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function fetch_database() {
-		 $this->print_action_title( 'Fetching database' );
+		$this->print_action_title( 'Fetching database' );
 
 		$pipe    = $this->has_pv ? ' | pv | ' : ' | ';
 		$command = "{$this->settings['ssh_command']} \"bash -c \\\"cd {$this->settings['ssh_path']} && {$this->remote_wp} db export --quiet --single-transaction - | gzip -cf\\\"\" {$pipe} gunzip -c | {$this->local_wp} db import --quiet -";
