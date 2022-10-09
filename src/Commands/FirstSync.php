@@ -43,6 +43,8 @@ class FirstSync extends WP_CLI_Command {
 	 * @param array $assoc_args Arguments
 	 */
 	public function __invoke( array $args, array $assoc_args ) {
+		Helpers::version_check();
+
 		/*
 		 * Check for WordPress
 		 * A wp-cli version check  confirms that `composer install` has been run too

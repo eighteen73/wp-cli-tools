@@ -90,6 +90,8 @@ class Sync extends WP_CLI_Command {
 	 * @param array $assoc_args Arguments
 	 */
 	public function __invoke( array $args, array $assoc_args ) {
+		Helpers::version_check();
+
 		$version = Helpers::wp_command( 'core version' );
 		if ( empty( $version ) ) {
 			WP_CLI::error( 'Not a WordPress directory' );

@@ -1,4 +1,9 @@
 <?php
+/**
+ * The main package script
+ *
+ * @package eighteen73/wpi-cli-tools
+ */
 
 if ( ! class_exists( 'WP_CLI' ) ) {
 	return;
@@ -9,6 +14,7 @@ if ( file_exists( $wpcli_core_autoloader ) ) {
 	require_once $wpcli_core_autoloader;
 }
 
+WP_CLI::add_command( 'eighteen73 version', 'Eighteen73\WP_CLI\Commands\Version' );
 WP_CLI::add_command( 'eighteen73 create-site', 'Eighteen73\WP_CLI\Commands\CreateSite' );
 WP_CLI::add_command( 'eighteen73 first-sync', 'Eighteen73\WP_CLI\Commands\FirstSync' );
 WP_CLI::add_command( 'eighteen73 sync', 'Eighteen73\WP_CLI\Commands\Sync' );

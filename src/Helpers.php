@@ -39,6 +39,21 @@ class Helpers {
 	}
 
 	/**
+	 * Run a version check and quit if one is needed
+	 *
+	 * @return void
+	 */
+	public static function version_check() {
+		WP_CLI::runcommand(
+			'eighteen73 version',
+			[
+				'exit_error' => true,
+				'return'     => false,
+			]
+		);
+	}
+
+	/**
 	 * Run a command on the CLI
 	 *
 	 * @param string $command Command
