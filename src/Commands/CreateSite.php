@@ -320,7 +320,6 @@ class CreateSite extends WP_CLI_Command {
 				'wp-media/wp-rocket',
 				'wpackagist-plugin/duracelltomi-google-tag-manager',
 				'wpackagist-plugin/limit-login-attempts-reloaded',
-				'wpackagist-plugin/mailgun',
 				'wpackagist-plugin/redirection',
 				'wpackagist-plugin/webp-express',
 				'wpackagist-plugin/wordpress-seo',
@@ -329,6 +328,27 @@ class CreateSite extends WP_CLI_Command {
 				'wpackagist-plugin/spatie-ray',
 			],
 		];
+
+		// Let the installer choose their mail plugin
+		$mail_plugins = [
+			'Easy WP SMTP (choose if unsure)' => 'wpackagist-plugin/easy-wp-smtp',
+			'Mailgun for WordPress'           => 'wpackagist-plugin/mailgun',
+		];
+		$max_option   = count( $mail_plugins ) - 1;
+		do {
+			WP_CLI::line();
+			WP_CLI::line( 'Mail plugin: [0]' );
+			for ( $i = 0; $i <= $max_option; $i++ ) {
+				$plugin_name = array_keys( $mail_plugins )[ $i ];
+				WP_CLI::line( "  [{$i}] {$plugin_name}" );
+			}
+			WP_CLI::out( '> ' );
+			$option = strtolower( trim( fgets( STDIN ) ) );
+			if ( $option === '' ) {
+				$option = '0';
+			}
+		} while ( ! preg_match( "/^[0-{$max_option}]$/", $option ) );
+		$plugins['always'][] = array_values( $mail_plugins )[ $option ];
 
 		Helpers::composer_command( 'require ' . implode( ' ', $plugins['always'] ), $this->install_directory );
 		Helpers::composer_command( 'require --dev ' . implode( ' ', $plugins['dev'] ), $this->install_directory );
