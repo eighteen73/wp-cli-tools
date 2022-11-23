@@ -258,7 +258,7 @@ class Sync extends WP_CLI_Command {
 			'wp',
 		];
 		foreach ( $possible_paths as $path ) {
-			if ( Helpers::cli_command( "which '{$path}'" ) !== null ) {
+			if ( ! empty(Helpers::cli_command( "which '{$path}'" ) ) ) {
 				$this->local_wp = $path;
 
 				return;
