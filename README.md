@@ -83,6 +83,23 @@ EIGHTEEN73_SYNC_ACTIVATE_PLUGINS=plugin1,plugin2
 EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS=plugin3
 ```
 
+#### Config (via `wp-config.php`)
+
+**This is ONLY for non-Nebula/Bedrock websites.**
+
+If your website doesn't have either of the above config files you can put the following into `wp-config.php` and run the `wp` command from your website's public root.
+
+```php
+define( 'EIGHTEEN73_SSH_HOST', 'website.example.com' );
+define( 'EIGHTEEN73_SSH_PORT', '123' ); // if not port 22
+define( 'EIGHTEEN73_SSH_USER', 'username' );
+define( 'EIGHTEEN73_SSH_PATH', '/path/to/remote/website' );
+
+// You may also add a list of plugins to automatically activate/deactivate
+define( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS', 'plugin1,plugin2' );
+define( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS', 'plugin3' );
+```
+
 #### Usage
 
 ```shell

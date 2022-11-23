@@ -8,8 +8,6 @@
 namespace Eighteen73\WP_CLI\Commands;
 
 use Eighteen73\WP_CLI\Helpers;
-use Roots\WPConfig\Config;
-use Roots\WPConfig\Exceptions\UndefinedConfigKeyException;
 use WP_CLI;
 use WP_CLI_Command;
 
@@ -156,7 +154,12 @@ class Sync extends WP_CLI_Command {
 			return getenv( 'WP_ENV' );
 		}
 
-		return wp_get_environment_type();
+		if ( function_exists( 'wp_get_environment_type' ) ) {
+			return wp_get_environment_type();
+		}
+
+		// For older websites we'll just have to trust the user's in a development environment
+		return 'development';
 	}
 
 	/**
@@ -170,23 +173,18 @@ class Sync extends WP_CLI_Command {
 	 * Load settings from .env or config (.env takes precedence)
 	 */
 	private function has_all_settings(): bool {
-		try {
-			$this->settings['ssh_host'] = getenv( 'EIGHTEEN73_SSH_HOST' ) ?: Config::get( 'EIGHTEEN73_SSH_HOST' );
-			$this->settings['ssh_user'] = getenv( 'EIGHTEEN73_SSH_USER' ) ?: Config::get( 'EIGHTEEN73_SSH_USER' );
-			$this->settings['ssh_path'] = getenv( 'EIGHTEEN73_SSH_PATH' ) ?: Config::get( 'EIGHTEEN73_SSH_PATH' );
-		} catch ( UndefinedConfigKeyException $e ) {
+		$this->settings['ssh_host'] = $this->get_config_item( 'EIGHTEEN73_SSH_HOST' );
+		$this->settings['ssh_user'] = $this->get_config_item( 'EIGHTEEN73_SSH_USER' );
+		$this->settings['ssh_path'] = $this->get_config_item( 'EIGHTEEN73_SSH_PATH' );
+		if ( empty( $this->settings['ssh_host'] ) || empty( $this->settings['ssh_user'] ) || empty( $this->settings['ssh_path'] ) ) {
 			return false;
 		}
 
 		// Special case for SSH port
-		try {
-			$ssh_port                   = getenv( 'EIGHTEEN73_SSH_PORT' ) ?: Config::get( 'EIGHTEEN73_SSH_PORT' );
-			$this->settings['ssh_port'] = strval( $ssh_port );
-			if ( ! preg_match( '/^[0-9]+$/', $this->settings['ssh_port'] ) ) {
-				$this->settings['ssh_port'] = null;
-			}
-		} catch ( UndefinedConfigKeyException $e ) {
-			// Do nothing
+		$ssh_port                   = $this->get_config_item( 'EIGHTEEN73_SSH_PORT' ) ?? '22';
+		$this->settings['ssh_port'] = strval( $ssh_port );
+		if ( ! preg_match( '/^[0-9]+$/', $this->settings['ssh_port'] ) ) {
+			$this->settings['ssh_port'] = null;
 		}
 
 		foreach ( $this->settings as $setting ) {
@@ -196,33 +194,14 @@ class Sync extends WP_CLI_Command {
 		}
 
 		// Plugin (de)activations
-		$activated_plugins   = null;
-		$deactivated_plugins = null;
-
-		if ( getenv( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS' ) ) {
-			$activated_plugins = getenv( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS' );
-		} else {
-			try {
-				$activated_plugins = Config::get( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS' );
-			} catch ( UndefinedConfigKeyException $e ) {
-				// Do nothing
-			}
-		}
+		$activated_plugins = $this->get_config_item( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS' );
 		if ( $activated_plugins !== null ) {
 			$activated_plugins = preg_split( '/[\s,]+/', $activated_plugins );
 			$activated_plugins = array_filter( $activated_plugins );
 		}
 		$this->settings['plugins']['activate'] = $activated_plugins;
 
-		if ( getenv( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS' ) ) {
-			$deactivated_plugins = getenv( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS' );
-		} else {
-			try {
-				$deactivated_plugins = Config::get( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS' );
-			} catch ( UndefinedConfigKeyException $e ) {
-				// Do nothing
-			}
-		}
+		$deactivated_plugins = $this->get_config_item( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS' );
 		if ( $deactivated_plugins !== null ) {
 			$deactivated_plugins = preg_split( '/[\s,]+/', $deactivated_plugins );
 			$deactivated_plugins = array_filter( $deactivated_plugins );
@@ -258,7 +237,7 @@ class Sync extends WP_CLI_Command {
 			'wp',
 		];
 		foreach ( $possible_paths as $path ) {
-			if ( ! empty(Helpers::cli_command( "which '{$path}'" ) ) ) {
+			if ( ! empty( Helpers::cli_command( "which '{$path}'" ) ) ) {
 				$this->local_wp = $path;
 
 				return;
@@ -465,6 +444,29 @@ class Sync extends WP_CLI_Command {
 	 */
 	private function is_plugin_installed_and_active( string $plugin_slug ): bool {
 		return $this->is_plugin_installed( $plugin_slug ) && $this->is_plugin_installed( $plugin_slug );
+	}
+
+	/**
+	 * Get a setting from wherever this website has placed them
+	 *
+	 * @param string $item Setting name
+	 *
+	 * @return array|false|mixed|string|void|null
+	 */
+	private function get_config_item( string $item ) {
+		if ( defined( $item ) ) {
+			return constant( $item );
+		}
+		if ( getenv( $item ) ) {
+			return getenv( $item );
+		}
+		if ( class_exists( '\Roots\WPConfig\Config' ) ) {
+			try {
+				return \Roots\WPConfig\Config::get( $item );
+			} catch ( \Roots\WPConfig\Exceptions\UndefinedConfigKeyException $e ) {
+				return null;
+			}
+		}
 	}
 
 }

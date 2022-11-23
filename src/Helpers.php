@@ -34,8 +34,14 @@ class Helpers {
 	 * @return void
 	 */
 	public static function paths() {
-		self::$cwd    = getcwd();
-		self::$wp_dir = self::$cwd . '/web/wp';
+		self::$cwd = getcwd();
+
+		$modern_path = self::$cwd . '/web/wp';
+		if ( file_exists( $modern_path ) && is_dir( $modern_path ) ) {
+			self::$wp_dir = $modern_path;
+		} else {
+			self::$wp_dir = self::$cwd . '';
+		}
 	}
 
 	/**
