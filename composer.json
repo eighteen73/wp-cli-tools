@@ -1,5 +1,5 @@
 {
-    "name": "eighteen73/wpi-cli-tools",
+    "name": "eighteen73/wp-cli-tools",
     "description": "WP-CLI commands to assist in our development workflow",
     "type": "wp-cli-package",
     "license": "MIT",
