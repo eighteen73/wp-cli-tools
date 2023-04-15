@@ -353,11 +353,7 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::composer_command( 'require ' . implode( ' ', $plugins['always'] ), $this->install_directory );
 		Helpers::composer_command( 'require --dev ' . implode( ' ', $plugins['dev'] ), $this->install_directory );
 
-		$all_plugins = array_map(
-			fn( string $value) => substr( $value, strpos( $value, '/' ) + 1 ),
-			array_merge( $plugins['always'], $plugins['dev'] )
-		);
-		Helpers::wp_command( 'plugin activate ' . implode( ' ', $all_plugins ), $this->wp_directory );
+		Helpers::wp_command( 'plugin activate --all', $this->wp_directory );
 
 		// Limit login attempts
 		Helpers::wp_add_option( 'limit_login_lockout_notify', '""', true, $this->wp_directory );
@@ -403,7 +399,7 @@ class CreateSite extends WP_CLI_Command {
 	 */
 	private function install_woocommerce() {
 		Helpers::composer_command( 'require wpackagist-plugin/woocommerce wpackagist-plugin/woocommerce-gateway-stripe', $this->install_directory );
-		Helpers::wp_command( 'plugin activate woocommerce woocommerce-gateway-stripe', $this->wp_directory );
+		Helpers::wp_command( 'plugin activate --all', $this->wp_directory );
 
 		// Options
 		Helpers::wp_update_option( 'woocommerce_default_country', 'GB', $this->wp_directory );
