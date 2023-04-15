@@ -366,28 +366,30 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::wp_add_option( 'limit_login_show_top_level_menu_item', '0', true, $this->wp_directory );
 		Helpers::wp_command( 'transient delete llar_welcome_redirect', $this->wp_directory );
 
-		// Mailgun
-		$value = escapeshellarg(
-			json_encode(
-				[
-					'region'        => 'eu',
-					'useAPI'        => '1',
-					'domain'        => 'site-email.com',
-					'apiKey'        => '',
-					'username'      => '',
-					'password'      => '',
-					'secure'        => '1',
-					'sectype'       => 'ssl',
-					'track-clicks'  => 'no',
-					'track-opens'   => '1',
-					'from-address'  => '',
-					'from-name'     => '',
-					'override-from' => '0',
-					'campaign-id'   => '',
-				]
-			)
-		);
-		Helpers::wp_add_option( 'mailgun', $value, true, $this->wp_directory, true );
+		// Mailgun (if used)
+		if ( in_array( 'wpackagist-plugin/mailgun', $plugins['always'] ) ) {
+			$value = escapeshellarg(
+				json_encode(
+					[
+						'region'        => 'eu',
+						'useAPI'        => '1',
+						'domain'        => 'site-email.com',
+						'apiKey'        => '',
+						'username'      => '',
+						'password'      => '',
+						'secure'        => '1',
+						'sectype'       => 'ssl',
+						'track-clicks'  => 'no',
+						'track-opens'   => '1',
+						'from-address'  => '',
+						'from-name'     => '',
+						'override-from' => '0',
+						'campaign-id'   => '',
+					]
+				)
+			);
+			Helpers::wp_add_option( 'mailgun', $value, true, $this->wp_directory, true );
+		}
 
 		$this->commit_repo( 'Add house plugins' );
 
