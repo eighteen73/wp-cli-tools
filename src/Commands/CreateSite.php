@@ -362,6 +362,9 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::wp_add_option( 'limit_login_show_top_level_menu_item', '0', true, $this->wp_directory );
 		Helpers::wp_command( 'transient delete llar_welcome_redirect', $this->wp_directory );
 
+		// Redirection
+		Helpers::wp_command( 'redirection database install', $this->wp_directory );
+
 		// Mailgun (if used)
 		if ( in_array( 'wpackagist-plugin/mailgun', $plugins['always'] ) ) {
 			$value = escapeshellarg(
