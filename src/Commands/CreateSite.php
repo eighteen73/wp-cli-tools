@@ -59,6 +59,13 @@ class CreateSite extends WP_CLI_Command {
 	private string $site_username;
 
 	/**
+	 * Admin email
+	 *
+	 * @var string
+	 */
+	private string $site_email;
+
+	/**
 	 * Admin password
 	 *
 	 * @var string
@@ -71,6 +78,7 @@ class CreateSite extends WP_CLI_Command {
 	 * @var array|false[]
 	 */
 	private array $options = [
+		'multisite'   => false,
 		'woocommerce' => false,
 	];
 
@@ -81,6 +89,9 @@ class CreateSite extends WP_CLI_Command {
 	 *
 	 * <name>
 	 * : The name (directory) for the website
+	 *
+	 * [--multisite]
+	 * : Install as a multisite network
 	 *
 	 * [--woocommerce]
 	 * : Include WooCommerce
@@ -121,15 +132,31 @@ class CreateSite extends WP_CLI_Command {
 			$this->install_woocommerce();
 		}
 
-		WP_CLI::line();
-		WP_CLI::line();
-		WP_CLI::success( 'Your website is ready.' );
-		WP_CLI::line();
-		WP_CLI::line( 'URL:      ' . $this->site_url );
-		WP_CLI::line( 'Admin:    ' . $this->site_url . '/wp/wp-admin' );
-		WP_CLI::line();
-		WP_CLI::line( 'Username: ' . $this->site_username );
-		WP_CLI::line( 'Password: ' . $this->site_password );
+		if ( $this->options['multisite'] ) {
+			WP_CLI::line();
+			WP_CLI::line();
+			WP_CLI::success( 'Your multisite is ready.' );
+			WP_CLI::line( 'Important: Refer to https://docs.eighteen73.co.uk/wordpress/build-tools/nebula for multisite Apache/NGINX configuration.' );
+			WP_CLI::line();
+			WP_CLI::line( 'Network admin:  ' . $this->site_url . '/wp/wp-admin/network' );
+			WP_CLI::line();
+			WP_CLI::line( 'Website URL:    ' . $this->site_url );
+			WP_CLI::line( 'Website admin:  ' . $this->site_url . '/wp/wp-admin' );
+			WP_CLI::line();
+			WP_CLI::line( 'Username:       ' . $this->site_username );
+			WP_CLI::line( 'Password:       ' . $this->site_password );
+		} else {
+			WP_CLI::line();
+			WP_CLI::line();
+			WP_CLI::success( 'Your website is ready.' );
+			WP_CLI::line();
+			WP_CLI::line( 'URL:       ' . $this->site_url );
+			WP_CLI::line( 'Admin:     ' . $this->site_url . '/wp/wp-admin' );
+			WP_CLI::line();
+			WP_CLI::line( 'Username:  ' . $this->site_username );
+			WP_CLI::line( 'Password:  ' . $this->site_password );
+		}
+
 	}
 
 	/**
@@ -153,6 +180,12 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function check_args( array $assoc_args ) {
+		if ( isset( $assoc_args['multisite'] ) && $assoc_args['multisite'] === true ) {
+			$this->options['multisite'] = true;
+		} elseif ( isset( $assoc_args['multisite'] ) ) {
+			WP_CLI::error( 'Option `--multisite` must not have a value' );
+		}
+
 		if ( isset( $assoc_args['woocommerce'] ) && $assoc_args['woocommerce'] === true ) {
 			$this->options['woocommerce'] = true;
 		} elseif ( isset( $assoc_args['woocommerce'] ) ) {
@@ -265,22 +298,14 @@ class CreateSite extends WP_CLI_Command {
 		WP_CLI::line();
 		WP_CLI::line( 'Enter your admin email address' );
 		WP_CLI::out( '> ' );
-		$email = strtolower( trim( fgets( STDIN ) ) );
+		$this->site_email = strtolower( trim( fgets( STDIN ) ) );
 
-		// Install
-		$output = Helpers::wp_command(
-			[
-				'core install',
-				[
-					'skip-email'  => null,
-					'url'         => escapeshellarg( $this->site_url . '/web' ),
-					'title'       => escapeshellarg( $this->site_name ),
-					'admin_user'  => escapeshellarg( $this->site_username ),
-					'admin_email' => escapeshellarg( $email ),
-				],
-			],
-			$this->wp_directory
-		);
+		// Install using multisite or not
+		if ( $this->options['multisite'] ) {
+			$output = $this->install_multisite();
+		} else {
+			$output = $this->install_site();
+		}
 
 		// Set language
 		Helpers::wp_command( 'language core install en_GB', $this->wp_directory );
@@ -307,6 +332,110 @@ class CreateSite extends WP_CLI_Command {
 			$this->site_password = trim( $matches[1] );
 		}
 		WP_CLI::line( '   ... done' );
+	}
+
+	/**
+	 * Install as a basic website
+	 *
+	 * @return void
+	 */
+	private function install_site() {
+		return Helpers::wp_command(
+			[
+				'core install',
+				[
+					'skip-email'  => null,
+					'url'         => escapeshellarg( $this->site_url . '/web' ),
+					'title'       => escapeshellarg( $this->site_name ),
+					'admin_user'  => escapeshellarg( $this->site_username ),
+					'admin_email' => escapeshellarg( $this->site_email ),
+				],
+			],
+			$this->wp_directory
+		);
+	}
+
+	/**
+	 * Install and configure a multisite network
+	 *
+	 * @return void
+	 */
+	private function install_multisite() {
+		$config_filepath = "{$this->install_directory}/config/application.php";
+
+		// Look for the WP_ALLOW_MULTISITE setting in in config/application.php and enable
+		$fp = fopen( $config_filepath, 'r+' );
+		while ( ! feof( $fp ) ) {
+			$line = fgets( $fp );
+			if ( ! str_contains( $line, 'WP_ALLOW_MULTISITE' ) ) {
+				continue;
+			}
+			$new_line = str_replace( 'false', 'true', $line );
+			fseek( $fp, -strlen( $line ), SEEK_CUR );
+			fwrite( $fp, $new_line );
+		}
+		fclose( $fp );
+
+		// Gather the multisite options
+		do {
+			WP_CLI::line();
+			WP_CLI::line( 'Would like sites to use sub-directories or sub-domains: [0]' );
+			WP_CLI::line( '  [0] Sub-directories' );
+			WP_CLI::line( '  [1] Sub-domains' );
+			WP_CLI::out( '> ' );
+			$option = strtolower( trim( fgets( STDIN ) ) );
+			if ( $option === '' ) {
+				$option = '0';
+			}
+		} while ( ! preg_match( '/^[0-1]$/', $option ) );
+		$subdomain_install = $option === '1';
+
+		$options = [
+			'skip-email'  => null,
+			'skip-config' => null,
+			'url'         => escapeshellarg( $this->site_url . '/web' ),
+			'title'       => escapeshellarg( $this->site_name ),
+			'admin_user'  => escapeshellarg( $this->site_username ),
+			'admin_email' => escapeshellarg( $this->site_email ),
+		];
+
+		if ( $subdomain_install ) {
+			$options['subdomains'] = null;
+		}
+
+		// Do the install
+		$output = Helpers::wp_command(
+			[
+				'core multisite-install',
+				$options,
+			],
+			$this->wp_directory
+		);
+
+		// Write the new config
+		$new_config = '';
+		$fp         = fopen( $config_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_config .= $line;
+			if ( ! str_contains( $line, 'WP_ALLOW_MULTISITE' ) ) {
+				continue;
+			}
+			$new_config .= "Config::define( 'MULTISITE', true );\n";
+			if ( $subdomain_install ) {
+				$new_config .= "Config::define( 'SUBDOMAIN_INSTALL', true );\n";
+			} else {
+				$new_config .= "Config::define( 'SUBDOMAIN_INSTALL', false );\n";
+			}
+			$new_config .= "Config::define( 'DOMAIN_CURRENT_SITE', '" . substr( $this->site_url, strpos( $this->site_url, '//' ) + 2 ) . "' );\n";
+			$new_config .= "Config::define( 'PATH_CURRENT_SITE', '/' );\n";
+			$new_config .= "Config::define( 'SITE_ID_CURRENT_SITE', 1 );\n";
+			$new_config .= "Config::define( 'BLOG_ID_CURRENT_SITE', 1 );";
+		}
+		fclose( $fp );
+		file_put_contents( $config_filepath, $new_config );
+
+		return $output;
 	}
 
 	/**

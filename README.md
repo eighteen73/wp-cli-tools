@@ -43,6 +43,9 @@ wp eighteen73 create-site foobar
 # Install under "foobar", specifying full path
 wp eighteen73 create-site /home/joebloggs/foobar
 
+# Install with multisite (network) features
+wp eighteen73 create-site foobar --multisite
+
 # Install with WooCommerce
 wp eighteen73 create-site foobar --woocommerce
 ```
