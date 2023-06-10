@@ -363,6 +363,7 @@ class CreateSite extends WP_CLI_Command {
 	private function install_multisite() {
 		$config_filepath = "{$this->install_directory}/config/application.php";
 		$dotenv_filepath = "{$this->install_directory}/.env";
+		$htaccess_filepath = "{$this->install_directory}/web/.htaccess";
 
 		// Look for the WP_ALLOW_MULTISITE setting in in config/application.php and enable
 		$fp = fopen( $config_filepath, 'r+' );
@@ -469,6 +470,41 @@ class CreateSite extends WP_CLI_Command {
 		}
 		fclose( $fp );
 		file_put_contents( $config_filepath, $new_config );
+
+		// Write the .htaccess (this file will not exist yet)
+		$htaccess_content  = "# BEGIN WordPress Multisite\n";
+		if ( $subdomain_install ) {
+			$htaccess_content .= "# Using subdomain network type: https://wordpress.org/documentation/article/htaccess/#multisite\n";
+		} else {
+			$htaccess_content .= "# Using subfolder network type: https://wordpress.org/documentation/article/htaccess/#multisite\n";
+		}
+		$htaccess_content .= "\n";
+		$htaccess_content .= "RewriteEngine On\n";
+		$htaccess_content .= "RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]\n";
+		$htaccess_content .= "RewriteBase /\n";
+		$htaccess_content .= "RewriteRule ^index\.php$ - [L]\n";
+		$htaccess_content .= "\n";
+		$htaccess_content .= "# add a trailing slash to /wp-admin\n";
+		if ( $subdomain_install ) {
+			$htaccess_content .= "RewriteRule ^wp-admin$ wp-admin/ [R=301,L]\n";
+		} else {
+			$htaccess_content .= "RewriteRule ^([_0-9a-zA-Z-]+/)?wp-admin$ $1wp-admin/ [R=301,L]\n";
+		}
+		$htaccess_content .= "\n";
+		$htaccess_content .= "RewriteCond %{REQUEST_FILENAME} -f [OR]\n";
+		$htaccess_content .= "RewriteCond %{REQUEST_FILENAME} -d\n";
+		$htaccess_content .= "RewriteRule ^ - [L]\n";
+		if ( $subdomain_install ) {
+			$htaccess_content .= "RewriteRule ^(wp-(content|admin|includes).*) $1 [L]\n";
+			$htaccess_content .= "RewriteRule ^(.*\.php)$ $1 [L]\n";
+		} else {
+			$htaccess_content .= "RewriteRule ^([_0-9a-zA-Z-]+/)?(wp-(content|admin|includes).*) $2 [L]\n";
+			$htaccess_content .= "RewriteRule ^([_0-9a-zA-Z-]+/)?(.*\.php)$ $2 [L]\n";
+		}
+		$htaccess_content .= "RewriteRule . index.php [L]\n";
+		$htaccess_content .= "\n";
+		$htaccess_content .= "# END WordPress Multisite\n";
+		file_put_contents( $htaccess_filepath, $htaccess_content );
 
 		return $output;
 	}
