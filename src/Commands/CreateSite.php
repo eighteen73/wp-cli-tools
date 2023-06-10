@@ -337,7 +337,7 @@ class CreateSite extends WP_CLI_Command {
 	/**
 	 * Install as a basic website
 	 *
-	 * @return void
+	 * @return int|mixed|object|null
 	 */
 	private function install_site() {
 		return Helpers::wp_command(
@@ -358,10 +358,11 @@ class CreateSite extends WP_CLI_Command {
 	/**
 	 * Install and configure a multisite network
 	 *
-	 * @return void
+	 * @return int|mixed|object|null
 	 */
 	private function install_multisite() {
 		$config_filepath = "{$this->install_directory}/config/application.php";
+		$dotenv_filepath = "{$this->install_directory}/.env";
 
 		// Look for the WP_ALLOW_MULTISITE setting in in config/application.php and enable
 		$fp = fopen( $config_filepath, 'r+' );
@@ -412,6 +413,40 @@ class CreateSite extends WP_CLI_Command {
 			$this->wp_directory
 		);
 
+		$domain_current_site = substr( $this->site_url, strpos( $this->site_url, '//' ) + 2 );
+
+		// Add the domain to .env.example
+		$new_dotenv = '';
+		$fp         = fopen( "{$dotenv_filepath}.example", 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Multisite\n";
+			$new_dotenv .= "DOMAIN_CURRENT_SITE=\"\"\n";
+		}
+		fclose( $fp );
+		file_put_contents( "{$dotenv_filepath}.example", $new_dotenv );
+
+		// Add the domain to .env
+		$new_dotenv = '';
+		$fp         = fopen( $dotenv_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Multisite\n";
+			$new_dotenv .= 'DOMAIN_CURRENT_SITE="' . $domain_current_site . "\"\n";
+		}
+		fclose( $fp );
+		file_put_contents( $dotenv_filepath, $new_dotenv );
+
 		// Write the new config
 		$new_config = '';
 		$fp         = fopen( $config_filepath, 'r' );
@@ -427,7 +462,7 @@ class CreateSite extends WP_CLI_Command {
 			} else {
 				$new_config .= "Config::define( 'SUBDOMAIN_INSTALL', false );\n";
 			}
-			$new_config .= "Config::define( 'DOMAIN_CURRENT_SITE', '" . substr( $this->site_url, strpos( $this->site_url, '//' ) + 2 ) . "' );\n";
+			$new_config .= "Config::define( 'DOMAIN_CURRENT_SITE', \$_ENV['DOMAIN_CURRENT_SITE'] );\n";
 			$new_config .= "Config::define( 'PATH_CURRENT_SITE', '/' );\n";
 			$new_config .= "Config::define( 'SITE_ID_CURRENT_SITE', 1 );\n";
 			$new_config .= "Config::define( 'BLOG_ID_CURRENT_SITE', 1 );";
