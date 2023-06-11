@@ -141,7 +141,7 @@ class CreateSite extends WP_CLI_Command {
 			WP_CLI::line( 'Network admin:  ' . $this->site_url . '/wp/wp-admin/network' );
 			WP_CLI::line();
 			WP_CLI::line( 'Website URL:    ' . $this->site_url );
-			WP_CLI::line( 'Website admin:  ' . $this->site_url . '/wp/wp-admin' );
+			WP_CLI::line( 'Website admin:  ' . $this->site_url . '/wp/wp-login.php' );
 			WP_CLI::line();
 			WP_CLI::line( 'Username:       ' . $this->site_username );
 			WP_CLI::line( 'Password:       ' . $this->site_password );
@@ -151,7 +151,7 @@ class CreateSite extends WP_CLI_Command {
 			WP_CLI::success( 'Your website is ready.' );
 			WP_CLI::line();
 			WP_CLI::line( 'URL:       ' . $this->site_url );
-			WP_CLI::line( 'Admin:     ' . $this->site_url . '/wp/wp-admin' );
+			WP_CLI::line( 'Admin:     ' . $this->site_url . '/wp/wp-login.php' );
 			WP_CLI::line();
 			WP_CLI::line( 'Username:  ' . $this->site_username );
 			WP_CLI::line( 'Password:  ' . $this->site_password );
@@ -562,6 +562,8 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::wp_add_option( 'limit_login_show_warning_badge', '0', true, $this->wp_directory );
 		Helpers::wp_add_option( 'limit_login_hide_dashboard_widget', '1', true, $this->wp_directory );
 		Helpers::wp_add_option( 'limit_login_show_top_level_menu_item', '0', true, $this->wp_directory );
+		Helpers::wp_add_option( 'limit_login_onboarding_popup_shown', '1', true, $this->wp_directory );
+		Helpers::wp_add_option( 'limit_login_auto_update_choice', '0', true, $this->wp_directory );
 		Helpers::wp_command( 'transient delete llar_welcome_redirect', $this->wp_directory );
 
 		// Redirection
