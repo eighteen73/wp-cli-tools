@@ -515,14 +515,16 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_plugins() {
+		$config_filepath = "{$this->install_directory}/config/application.php";
+
 		$plugins = [
 			'always' => [
-				'wp-media/wp-rocket',
 				'wpackagist-plugin/duracelltomi-google-tag-manager',
 				'wpackagist-plugin/limit-login-attempts-reloaded',
 				'wpackagist-plugin/redirection',
 				'wpackagist-plugin/webp-express',
 				'wpackagist-plugin/wordpress-seo',
+				'wpackagist-plugin/wp-super-cache',
 			],
 			'dev'    => [
 				'wpackagist-plugin/spatie-ray',
@@ -564,6 +566,20 @@ class CreateSite extends WP_CLI_Command {
 
 		// Redirection
 		Helpers::wp_command( 'redirection database install', $this->wp_directory );
+
+		// WP Super Cache
+		$new_config = '';
+		$fp         = fopen( $config_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_config .= $line;
+			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
+				continue;
+			}
+			$new_config .= "Config::define( 'WPCACHEHOME', Config::get( 'WP_CONTENT_DIR' ) . '/plugins/wp-super-cache/' );\n";
+		}
+		fclose( $fp );
+		file_put_contents( $config_filepath, $new_config );
 
 		// Mailgun (if used)
 		if ( in_array( 'wpackagist-plugin/mailgun', $plugins['always'] ) ) {
