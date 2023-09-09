@@ -2,7 +2,7 @@
 
 A collection of WP-CLI helpers for our team's development workflow.
 
-**Important:** These are extremely opinionated for our development preferences and may not be useful to others.
+**Important:** These are extremely opinionated to match our development preferences and may not be useful to others. Functionality may also change unexpectedly as our workflows evolve.
 
 ## Installation
 
@@ -26,116 +26,23 @@ To update the package run the following command:
 wp package update
 ```
 
-## Available Commands
+## Usage
 
-### `create-site`: Create new website
+Available commands are listed below. Generally they are designed for use on our [Nebula](https://github.com/eighteen73/nebula) websites unless stated otherwise. For full usage instructions please refer to the [package docs](https://docs.eighteen73.co.uk/wordpress/build-tools/wp-cli/).
 
-This site installation command will install a fresh copy of WordPress using our [Nebula](https://github.com/eighteen73/nebula) framework. It will also install our [Pulsar](https://github.com/eighteen73/pulsar) theme and other plugins that are part of our standard website configuration.
+* `create-site` - Create new website
+* `sync` - Import the remote website's database
+* `first-sync` - Initialise a local website using a remote database
 
-It will interactively ask for installation details (e.g. database credentials) as needed.
+There is also a special command that may be run on a live website. It does require this package to be available in the remote environment though.
 
-#### Usage
+* `just-launched` - Runs useful post-launch operations on a website to prevent some common gotchas
 
-```shell
-# Install under "foobar" in current directory
-wp eighteen73 create-site foobar
+## Development
 
-# Install under "foobar", specifying full path
-wp eighteen73 create-site /home/joebloggs/foobar
-
-# Install with multisite (network) features
-wp eighteen73 create-site foobar --multisite
-
-# Install with WooCommerce
-wp eighteen73 create-site foobar --woocommerce
-```
-
----
-
-### `sync`: Import the remote website's database
-
-The sync command requires an SSH connection to the remote website and few configuration settings. The following instructions assume you are running our [Nebula](https://github.com/eighteen73/nebula) framework but are easily adapted for other installation profiles.
-
-#### Config (via `config/environments/development.php`)
-
-Because this doesn't store any sensitive login credentials it may be beneficial to add sync configuration to the environment config and commit to your repo, for the benefit of other developers.
-
-```php
-Config::define( 'EIGHTEEN73_SSH_HOST', 'website.example.com' );
-Config::define( 'EIGHTEEN73_SSH_PORT', 123 ); // if not port 22
-Config::define( 'EIGHTEEN73_SSH_USER', 'username' );
-Config::define( 'EIGHTEEN73_SSH_PATH', '/path/to/remote/website' );
-
-// You may also add a list of plugins to automatically activate/deactivate
-Config::define( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS', 'plugin1,plugin2' );
-Config::define( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS', 'plugin3' );
-```
-
-#### Config (via `.env`)
-
-If you would rather not share you config, or override the shared configuration added above, you can add this to you personal `.env` file.
-
-```ini
-EIGHTEEN73_SSH_HOST=website.example.com
-EIGHTEEN73_SSH_PORT=123 # if not port 22
-EIGHTEEN73_SSH_USER=username
-EIGHTEEN73_SSH_PATH=/path/to/remote/website
-
-# You may also add a list of plugins to automatically activate/deactivate
-EIGHTEEN73_SYNC_ACTIVATE_PLUGINS=plugin1,plugin2
-EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS=plugin3
-```
-
-#### Config (via `wp-config.php`)
-
-**This is ONLY for non-Nebula/Bedrock websites.**
-
-If your website doesn't have either of the above config files you can put the following into `wp-config.php` and run the `wp` command from your website's public root.
-
-```php
-define( 'EIGHTEEN73_SSH_HOST', 'website.example.com' );
-define( 'EIGHTEEN73_SSH_PORT', '123' ); // if not port 22
-define( 'EIGHTEEN73_SSH_USER', 'username' );
-define( 'EIGHTEEN73_SSH_PATH', '/path/to/remote/website' );
-
-// You may also add a list of plugins to automatically activate/deactivate
-define( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS', 'plugin1,plugin2' );
-define( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS', 'plugin3' );
-```
-
-#### Usage
+For development, you'll probably want to run a local clone of this package.
 
 ```shell
-# Simple, just applies plugin overrides
-wp eighteen73 sync
-
-# Database mode, downloads a fresh copy of the remove database (overwriting all local data) and applies plugin overrides
-wp eighteen73 sync --database
-
-# Uploads mode, downloads a fresh copy of uploads directory (overwriting all local files) and applies plugin overrides
-wp eighteen73 sync --uploads
-
-# All of the above
-wp eighteen73 sync --database --uploads
-```
-
-Note that `--uploads` is not necessary if you are using our [Satellite](https://github.com/eighteen73/satellite) plugin and it's remote files feature is enabled.
-
----
-
-### `first-sync`: Initialise a website using a remote database
-
-The plain `sync` command cannot be run without a working copy of WordPress so this is a special version that can be run before there's a working database on your local website.
-
-#### Config
-
-This requires the same configuration as the `sync` command (see above).
-
-#### Usage
-
-Clone the website's Git repository and run `composer install` as usual before running the following command.
-
-```shell
-# Initialise your website from a remote copy
-wp eighteen73 first-sync
+wp package uninstall eighteen73/wp-cli-tools
+wp package install /local/path/to/wp-cli-tools
 ```
