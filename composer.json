@@ -1,37 +1,40 @@
 {
-    "name": "eighteen73/wp-cli-tools",
-    "description": "WP-CLI commands to assist in our development workflow",
-    "type": "wp-cli-package",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Ed Jeavons",
-            "email": "ed@orphans.co.uk"
-        }
-    ],
-    "minimum-stability": "stable",
-    "require": {
-        "php": "^7.4 || ^8.0",
-        "ext-json": "*"
-    },
-    "require-dev": {
-        "eighteen73/phpcs-composer": "^1.0.0",
-        "wp-cli/wp-cli-bundle": "^2.6"
-    },
-    "config": {
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        }
-    },
-    "autoload": {
-        "files": [ "wp-cli-tools.php" ],
-        "psr-4": {
-            "Eighteen73\\WP_CLI\\": "src/"
-        }
-    },
-    "scripts": {
-        "test": [
-            "phpcs"
-        ]
+  "name": "eighteen73/wp-cli-tools",
+  "description": "WP-CLI commands to assist in our development workflow",
+  "type": "wp-cli-package",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Ed Jeavons",
+      "email": "ed@orphans.co.uk"
     }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "php": ">=8.0",
+    "ext-json": "*",
+    "eighteen73/wordpress-coding-standards": "dev-main"
+  },
+  "require-dev": {
+    "eighteen73/phpcs-composer": "^1.0.0",
+    "wp-cli/wp-cli-bundle": "^2.6"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "autoload": {
+    "files": [
+      "wp-cli-tools.php"
+    ],
+    "psr-4": {
+      "Eighteen73\\WP_CLI\\": "src/"
+    }
+  },
+  "scripts": {
+    "test": [
+      "phpcs"
+    ]
+  }
 }
