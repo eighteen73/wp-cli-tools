@@ -523,6 +523,7 @@ class CreateSite extends WP_CLI_Command {
 				'wpackagist-plugin/webp-express',
 				'wpackagist-plugin/wordpress-seo',
 				'wpackagist-plugin/wp-super-cache',
+				'wpackagist-plugin/wpvulnerability',
 			],
 			'dev'    => [
 				'wpackagist-plugin/spatie-ray',
