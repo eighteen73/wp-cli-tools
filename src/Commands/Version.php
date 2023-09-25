@@ -86,5 +86,4 @@ class Version extends WP_CLI_Command {
 
 		return $out;
 	}
-
 }

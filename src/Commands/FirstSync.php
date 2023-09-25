@@ -91,5 +91,4 @@ class FirstSync extends WP_CLI_Command {
 
 		WP_CLI::success( 'Complete' );
 	}
-
 }

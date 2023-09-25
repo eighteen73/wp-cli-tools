@@ -142,5 +142,4 @@ class JustLaunched extends WP_CLI_Command {
 			$this->new_domain = $new_domain;
 		}
 	}
-
 }

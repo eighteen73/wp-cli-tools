@@ -156,7 +156,6 @@ class CreateSite extends WP_CLI_Command {
 			WP_CLI::line( 'Username:  ' . $this->site_username );
 			WP_CLI::line( 'Password:  ' . $this->site_password );
 		}
-
 	}
 
 	/**
@@ -227,7 +226,6 @@ class CreateSite extends WP_CLI_Command {
 		if ( ! is_writable( $this->install_directory ) ) {
 			WP_CLI::error( "'{$this->install_directory}' is not writable by current user." );
 		}
-
 	}
 
 	/**

@@ -468,5 +468,4 @@ class Sync extends WP_CLI_Command {
 			}
 		}
 	}
-
 }
