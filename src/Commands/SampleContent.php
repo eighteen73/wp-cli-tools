@@ -38,15 +38,36 @@ class SampleContent extends WP_CLI_Command {
 	 *
 	 *     wp @production eighteen73 sample-content
 	 *
-	 *      wp @production eighteen73 sample-content
+	 *     wp @production eighteen73 sample-content
 	 *
-	 * @when before_wp_load
+	 * @when after_wp_load
 	 *
 	 * @param array $args Arguments
 	 * @param array $assoc_args Arguments
 	 */
 	public function __invoke( array $args, array $assoc_args ) {
 		Helpers::version_check();
+
+		// Try existing
+		$args = [
+			'name'      => 'kitchen-sink',
+			'post_type' => 'page',
+			'post_status'    => array( 'publish', 'private', 'draft' ),
+		];
+		$page = get_posts( $args );
+
+		// Make new
+		if ( empty( $page ) ) {
+			$page_id = wp_insert_post( [
+				'post_name'   => 'kitchen-sink',
+				'post_status' => 'publish',
+				'post_title'  => 'Kitchen Sink',
+				'post_type'   => 'page',
+			] );
+			$page = get_post( $page_id );
+		}
+
+		ray($page);
 
 		WP_CLI::line();
 		WP_CLI::success( 'Complete' );
