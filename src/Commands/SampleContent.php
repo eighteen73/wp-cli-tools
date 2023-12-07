@@ -59,7 +59,7 @@ class SampleContent extends WP_CLI_Command {
 				continue;
 			}
 
-			$this->update_sample_page( $page_id, $sample_file['title'], $sample_file['path'] );
+			$this->update_sample_page( $page_id, $sample_file['title'], $sample_file['path'], $sample_file['special_insert'] );
 		}
 
 		WP_CLI::line();
@@ -102,17 +102,17 @@ class SampleContent extends WP_CLI_Command {
 			$title = 'Sample ' . ucwords( $title );
 
 			// Special rules
-			$special_rule = match ( $file ) {
-				'patterns.html' => 'patterns',
+			$special_insert = match ( $file ) {
+				'patterns.html' => 'theme_patterns',
 				default => null,
 			};
 
 			$out[] = [
-				'filename' => $file,
-				'path'     => "{$dirname}/{$file}",
-				'slug'     => $slug,
-				'title'    => $title,
-				'insert'   => $special_rule,
+				'filename'       => $file,
+				'path'           => "{$dirname}/{$file}",
+				'slug'           => $slug,
+				'title'          => $title,
+				'special_insert' => $special_insert,
 			];
 		}
 		return $out;
@@ -162,19 +162,40 @@ class SampleContent extends WP_CLI_Command {
 	 * Given a page ID and a path to a sample file, this method updates the content
 	 * of the specified page with the contents of the sample file.
 	 *
-	 * @param int    $page_id The ID of the page to update.
-	 * @param string $title The title of the page to update.
-	 * @param string $sample_filepath The path to the sample file.
+	 * @param int     $page_id The ID of the page to update.
+	 * @param string  $title The title of the page to update.
+	 * @param string  $sample_filepath The path to the sample file.
+	 * @param ?string $special_insert The sample's requirement for any special inserted content.
 	 *
 	 * @return void
 	 */
-	protected function update_sample_page( int $page_id, string $title, string $sample_filepath ) {
+	protected function update_sample_page( int $page_id, string $title, string $sample_filepath, string $special_insert = null ) {
 		$arg = [
 			'ID'           => $page_id,
 			'post_status'  => 'private',
 			'post_title'   => $title,
 			'post_content' => file_get_contents( $sample_filepath ),
 		];
+
+		if ( $special_insert === 'theme_patterns' ) {
+			$arg['post_content'] .= $this->insert_theme_patterns();
+		}
+
 		wp_update_post( $arg );
+	}
+
+	/**
+	 * Get all the theme's patterns for content insertion.
+	 *
+	 * @return string The generated special patterns in HTML format.
+	 */
+	protected function insert_theme_patterns(): string {
+		/*
+		 * TODO
+		 *  1. Get current theme and verify the presence of a patterns subdir
+		 *  2. Add each pattern, headed by the dir name (h1) and filename (h2)
+		 */
+
+		return '<!-- wp:paragraph {"className":""} --><p>Special patterns will be inserted here.</p><!-- /wp:paragraph -->';
 	}
 }
