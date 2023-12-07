@@ -8,6 +8,8 @@
 namespace Eighteen73\WP_CLI\Commands;
 
 use Eighteen73\WP_CLI\Helpers;
+use WP_Block_Pattern_Categories_Registry;
+use WP_Block_Patterns_Registry;
 use WP_CLI;
 use WP_CLI_Command;
 
@@ -187,15 +189,31 @@ class SampleContent extends WP_CLI_Command {
 	/**
 	 * Get all the theme's patterns for content insertion.
 	 *
+	 * This is based on our Pulsar theme which contains a "patterns" subdirectory for all patterns, which may themselves
+	 * be arranged into subdirectories.
+	 *
 	 * @return string The generated special patterns in HTML format.
 	 */
 	protected function insert_theme_patterns(): string {
-		/*
-		 * TODO
-		 *  1. Get current theme and verify the presence of a patterns subdir
-		 *  2. Add each pattern, headed by the dir name (h1) and filename (h2)
-		 */
+		$patterns = WP_Block_Patterns_Registry::get_instance()->get_all_registered();
 
-		return '<!-- wp:paragraph {"className":""} --><p>Special patterns will be inserted here.</p><!-- /wp:paragraph -->';
+		if ( empty( $patterns ) ) {
+			return '<!-- wp:paragraph {"className":""} --><p>This website has no patterns.</p><!-- /wp:paragraph -->';
+		}
+
+		// Add each pattern, headed by the dir name (h1) and filename (h2)
+		// TODO Group output by category using WP_Block_Pattern_Categories_Registry::get_instance()->get_all_registered();
+		$markup = '';
+		foreach ( $patterns as $pattern ) {
+			$markup .= '<!-- wp:heading {"level":2,"className":""} --><h2 class="wp-block-heading">' . $pattern['title'] . '</h2><!-- /wp:heading -->';
+			if ( $pattern['description'] ) {
+				$markup .= '<!-- wp:paragraph {"className":""} --><p>' . $pattern['description'] . '</p><!-- /wp:paragraph -->';
+			}
+			$markup .= "\n";
+			$markup .= $pattern['content'];
+			$markup .= "\n";
+		}
+
+		return $markup;
 	}
 }
