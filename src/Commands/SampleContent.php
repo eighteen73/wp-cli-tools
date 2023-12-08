@@ -11,6 +11,7 @@ use Eighteen73\WP_CLI\Helpers;
 use WP_Block_Pattern_Categories_Registry;
 use WP_Block_Patterns_Registry;
 use WP_CLI;
+use WP_CLI\ExitException;
 use WP_CLI_Command;
 
 /**
@@ -52,6 +53,8 @@ class SampleContent extends WP_CLI_Command {
 		// Check options
 		$this->check_args( $assoc_args );
 
+		$parent_page_id = $this->prepare_parent_page();
+
 		$sample_files = $this->get_sample_files();
 		foreach ( $sample_files as $sample_file ) {
 			$page_id = $this->get_sample_page( $sample_file['slug'] );
@@ -61,20 +64,23 @@ class SampleContent extends WP_CLI_Command {
 				continue;
 			}
 
-			$this->update_sample_page( $page_id, $sample_file['title'], $sample_file['path'], $sample_file['special_insert'] );
+			$this->update_sample_page( $parent_page_id, $page_id, $sample_file['title'], $sample_file['path'], $sample_file['special_insert'] );
 		}
+
+		$this->add_links_to_parent_page( $parent_page_id );
 
 		WP_CLI::line();
 		WP_CLI::success( 'Complete' );
 	}
 
 	/**
-	 * Validation the user's options
+	 * Checks the arguments passed to the method.
 	 *
-	 * @param array $assoc_args Arguments
+	 * @param array $assoc_args The array of associative arguments.
+	 *
 	 * @return void
 	 */
-	private function check_args( array $assoc_args ) {
+	private function check_args( array $assoc_args ): void {
 		if ( isset( $assoc_args['force'] ) && $assoc_args['force'] === true ) {
 			$this->options['force'] = true;
 		} elseif ( isset( $assoc_args['force'] ) ) {
@@ -96,12 +102,12 @@ class SampleContent extends WP_CLI_Command {
 			$basename = substr( $file, 0, -5 );
 
 			// Slug
-			$slug = "sample-{$basename}";
+			$slug = "{$basename}";
 
 			// Make a human page title
 			$title = $basename;
 			$title = preg_replace( '/[^a-zA-Z0-9]+/', ' ', $title );
-			$title = 'Sample ' . ucwords( $title );
+			$title = ucwords( $title );
 
 			// Special rules
 			$special_insert = match ( $file ) {
@@ -164,6 +170,7 @@ class SampleContent extends WP_CLI_Command {
 	 * Given a page ID and a path to a sample file, this method updates the content
 	 * of the specified page with the contents of the sample file.
 	 *
+	 * @param int     $parent_page_id The ID of the page parent.
 	 * @param int     $page_id The ID of the page to update.
 	 * @param string  $title The title of the page to update.
 	 * @param string  $sample_filepath The path to the sample file.
@@ -171,8 +178,9 @@ class SampleContent extends WP_CLI_Command {
 	 *
 	 * @return void
 	 */
-	protected function update_sample_page( int $page_id, string $title, string $sample_filepath, string $special_insert = null ) {
+	protected function update_sample_page( int $parent_page_id, int $page_id, string $title, string $sample_filepath, string $special_insert = null ): void {
 		$arg = [
+			'post_parent'  => $parent_page_id,
 			'ID'           => $page_id,
 			'post_status'  => 'private',
 			'post_title'   => $title,
@@ -183,6 +191,62 @@ class SampleContent extends WP_CLI_Command {
 			$arg['post_content'] .= $this->insert_theme_patterns();
 		}
 
+		wp_update_post( $arg );
+	}
+
+	/**
+	 * Prepares the parent page
+	 *
+	 * @return int The ID of the parent page
+	 */
+	protected function prepare_parent_page(): int {
+		$parent_page_id = $this->get_sample_page( 'styleguide' );
+
+		$arg = [
+			'ID'          => $parent_page_id,
+			'post_status' => 'private',
+			'post_title'  => 'Style Guide',
+			'post_parent' => null,
+		];
+		wp_update_post( $arg );
+
+		return $parent_page_id;
+	}
+
+	/**
+	 * Adds links to child pages to the content of the parent page.
+	 *
+	 * @param int $parent_page_id The ID of the parent page.
+	 *
+	 * @return void
+	 */
+	protected function add_links_to_parent_page( int $parent_page_id ): void {
+
+		$pages = get_pages(
+			[
+				'child_of'    => $parent_page_id,
+				'post_status' => [ 'publish', 'private' ],
+			]
+		);
+		// dump($pages);
+
+		$content  = '<!-- wp:paragraph {"className":""} -->';
+		$content .= '<p>This page and it\'s children serve the purpose of allowing the website\'s team to validate the website\'s styles and content blocks. They are automatically generated so if you edit them please be aware that the changes may be overwritten in the future. </p>';
+		$content .= '<!-- /wp:paragraph -->';
+		$content .= '<!-- wp:list {"className":""} -->';
+		$content .= '<ul>';
+		foreach ( $pages as $page ) {
+			$content .= '<!-- wp:list-item {"className":""} -->';
+			$content .= '<li><a href="' . get_the_permalink( $page ) . '">' . $page->post_title . '</a></li>';
+			$content .= '<!-- /wp:list-item -->';
+		}
+		$content .= '</ul>';
+		$content .= '<!-- /wp:list -->';
+
+		$arg = [
+			'ID'           => $parent_page_id,
+			'post_content' => $content,
+		];
 		wp_update_post( $arg );
 	}
 
