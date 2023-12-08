@@ -33,6 +33,7 @@ Available commands are listed below. Generally they are designed for use on our 
 * `create-site` - Create new website
 * `sync` - Import the remote website's database
 * `first-sync` - Initialise a local website using a remote database
+* `style-guide` - Add predetermined pages of content for visual checks and sign-off
 
 There is also a special command that may be run on a live website. It does require this package to be available in the remote environment though.
 

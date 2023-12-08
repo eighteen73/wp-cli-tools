@@ -194,4 +194,38 @@ class Helpers {
 		}
 		return trim( $cmd );
 	}
+
+	/**
+	 * Prompts the user with a question and returns their response
+	 *
+	 * @param string $question The question to ask the user
+	 * @param bool   $yes_or_no (Optional) Whether the response should be a boolean value indicating yes or no, defaults to false
+	 *
+	 * @return bool|string The user's response, either as a boolean or a string
+	 */
+	public static function ask( string $question, bool $yes_or_no = false ): bool|string {
+		if ( $yes_or_no ) {
+			$question .= ' [y/n]';
+		}
+		do {
+			fwrite( STDOUT, $question . ' ' );
+			$response = trim( fgets( STDIN ) );
+			if ( $yes_or_no ) {
+				$response = strtolower( $response );
+				switch ( $response ) {
+					case 'y':
+					case 'yes':
+						$response = true;
+						break;
+					case 'n':
+					case 'no':
+						$response = false;
+						break;
+					default:
+						$response = '';
+				}
+			}
+		} while ( $response === '' );
+		return $response;
+	}
 }
