@@ -517,6 +517,7 @@ class CreateSite extends WP_CLI_Command {
 
 		$plugins = [
 			'always' => [
+				'eighteen73/pulsar-blocks',
 				'wpackagist-plugin/duracelltomi-google-tag-manager',
 				'wpackagist-plugin/limit-login-attempts-reloaded',
 				'wpackagist-plugin/redirection',
