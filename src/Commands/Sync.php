@@ -135,7 +135,9 @@ class Sync extends WP_CLI_Command {
 			$this->deactivate_plugins();
 		}
 
-		if ( ! $done_something ) {
+		if ( $done_something ) {
+			$this->clear_caches();
+		} else {
 			WP_CLI::line();
 			WP_CLI::warning( 'You may have intended to run "wp eighteen73 sync --database" to update your local database.' );
 		}
@@ -467,5 +469,18 @@ class Sync extends WP_CLI_Command {
 				return null;
 			}
 		}
+	}
+
+	/**
+	 * Clear any caches etc. that might benefit from that after a data refresh
+	 *
+	 * @return void
+	 */
+	private function clear_caches() {
+		$this->print_action_title( 'Clearing caches' );
+
+		Helpers::wp_command( 'rewrite flush', null, false );
+		Helpers::wp_command( 'transient delete --all', null, false );
+		Helpers::wp_command( 'cache flush', null, false );
 	}
 }
