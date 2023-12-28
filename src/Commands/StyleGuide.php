@@ -25,6 +25,13 @@ use WP_CLI_Command;
 class StyleGuide extends WP_CLI_Command {
 
 	/**
+	 * The ID of the parent page
+	 *
+	 * @var int|null
+	 */
+	private ?int $parent_page_id = null;
+
+	/**
 	 * Add a predetermined style guide to the website.
 	 *
 	 * Pages are published privately. You'll be asked for permission to overwrite pre-existing pages.
@@ -51,7 +58,7 @@ class StyleGuide extends WP_CLI_Command {
 		// Check options
 		$this->check_args( $assoc_args );
 
-		$parent_page_id = $this->prepare_parent_page();
+		$this->prepare_parent_page();
 
 		$content_files = $this->get_style_guide_content();
 		foreach ( $content_files as $content_file ) {
@@ -62,10 +69,10 @@ class StyleGuide extends WP_CLI_Command {
 				continue;
 			}
 
-			$this->update_style_guide_page( $parent_page_id, $page_id, $content_file['title'], $content_file['path'], $content_file['special_insert'] );
+			$this->update_style_guide_page( $this->parent_page_id, $page_id, $content_file['title'], $content_file['path'], $content_file['special_insert'] );
 		}
 
-		$this->add_links_to_parent_page( $parent_page_id );
+		$this->add_links_to_parent_page( $this->parent_page_id );
 
 		WP_CLI::line();
 		WP_CLI::success( 'Complete' );
@@ -128,9 +135,10 @@ class StyleGuide extends WP_CLI_Command {
 	 * Load or create the style guide page
 	 *
 	 * @param string $path The page path
-	 * @return int
+	 * @param bool   $is_parent_page If this the top-level style guide page
+	 * @return int|null The ID of the page
 	 */
-	protected function get_style_guide_page( string $path ): ?int {
+	protected function get_style_guide_page( string $path, bool $is_parent_page = false ): ?int {
 
 		// Try existing
 		$args  = [
@@ -146,17 +154,28 @@ class StyleGuide extends WP_CLI_Command {
 				[
 					'post_name' => $path,
 					'post_type' => 'page',
+					'post_status' => 'private',
 				]
 			);
 		} else {
-			if ( ! $this->options['force'] ) {
+			$page_id = $pages[0]->ID;
+
+			if ( ! ( $this->options['force'] ?? false ) ) {
 				$answer = Helpers::ask( "Page \"/{$path}\" already exists. Overwrite with new content?", true );
 				if ( ! $answer ) {
 					WP_CLI::line( " ... Skipping /{$path}" );
+
+					if ( $is_parent_page ) {
+						$this->parent_page_id = $page_id;
+					}
+
 					return null;
 				}
 			}
-			$page_id = $pages[0]->ID;
+		}
+
+		if ( $is_parent_page ) {
+			$this->parent_page_id = $page_id;
 		}
 
 		return $page_id;
@@ -195,24 +214,26 @@ class StyleGuide extends WP_CLI_Command {
 	/**
 	 * Prepares the parent page
 	 *
-	 * @return int The ID of the parent page
+	 * @return void
 	 */
-	protected function prepare_parent_page(): int {
-		$parent_page_id = $this->get_style_guide_page( 'styleguide' );
+	protected function prepare_parent_page(): void {
+		$page_id = $this->get_style_guide_page( 'styleguide', true );
+
+		if ( ! $page_id ) {
+			return;
+		}
 
 		$arg = [
-			'ID'          => $parent_page_id,
+			'ID'          => $page_id,
 			'post_status' => 'private',
 			'post_title'  => 'Style Guide',
 			'post_parent' => null,
 		];
 		wp_update_post( $arg );
-
-		return $parent_page_id;
 	}
 
 	/**
-	 * Adds links to child pages to the content of the parent page.
+	 * Adds links to child pages to the content of the parent page. This page has to be overwritten.
 	 *
 	 * @param int $parent_page_id The ID of the parent page.
 	 *
