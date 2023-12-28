@@ -533,8 +533,8 @@ class CreateSite extends WP_CLI_Command {
 
 		// Let the installer choose their mail plugin
 		$mail_plugins = [
-			'Easy WP SMTP (choose if unsure)' => 'wpackagist-plugin/easy-wp-smtp',
-			'Mailgun for WordPress'           => 'wpackagist-plugin/mailgun',
+			'WordPress Simple SMTP (choose if unsure)' => 'wpackagist-plugin/simple-smtp',
+			'Mailgun for WordPress'                    => 'wpackagist-plugin/mailgun',
 		];
 		$max_option   = count( $mail_plugins ) - 1;
 		do {
@@ -545,12 +545,13 @@ class CreateSite extends WP_CLI_Command {
 				WP_CLI::line( "  [{$i}] {$plugin_name}" );
 			}
 			WP_CLI::out( '> ' );
-			$option = strtolower( trim( fgets( STDIN ) ) );
-			if ( $option === '' ) {
-				$option = '0';
+			$mail_option = strtolower( trim( fgets( STDIN ) ) );
+			if ( $mail_option === '' ) {
+				$mail_option = '0';
 			}
-		} while ( ! preg_match( "/^[0-{$max_option}]$/", $option ) );
-		$plugins['always'][] = array_values( $mail_plugins )[ $option ];
+		} while ( ! preg_match( "/^[0-{$max_option}]$/", $mail_option ) );
+		$mail_plugin = array_values( $mail_plugins )[ $mail_option ];
+		$plugins['always'][] = $mail_plugin;
 
 		Helpers::composer_command( 'require ' . implode( ' ', $plugins['always'] ), $this->install_directory );
 		Helpers::composer_command( 'require --dev ' . implode( ' ', $plugins['dev'] ), $this->install_directory );
@@ -583,8 +584,24 @@ class CreateSite extends WP_CLI_Command {
 		fclose( $fp );
 		file_put_contents( $config_filepath, $new_config );
 
-		// Mailgun (if used)
-		if ( in_array( 'wpackagist-plugin/mailgun', $plugins['always'] ) ) {
+		// Email config depends on the plugin chosen
+		if ( $mail_plugin === 'wpackagist-plugin/simple-smtp' ) {
+			// Default to the local mail catcher typically used by our team)
+			$value = escapeshellarg(
+				json_encode(
+					[
+						'host' => '127.0.0.1',
+						'port' => '1025',
+						'user' => '',
+						'pass' => '',
+						'from' => '',
+						'fromname' => '',
+						'sec' => 'off',
+					]
+				)
+			);
+			Helpers::wp_add_option( 'wpssmtp_smtp', $value, true, $this->wp_directory, true );
+		} elseif ( $mail_plugin === 'wpackagist-plugin/mailgun' ) {
 			$value = escapeshellarg(
 				json_encode(
 					[
