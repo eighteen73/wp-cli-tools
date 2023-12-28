@@ -531,6 +531,45 @@ class CreateSite extends WP_CLI_Command {
 			],
 		];
 
+		$plugins = [
+			'eighteen73/pulsar-blocks' => [
+				'activate' => true,
+				'dev' => false,
+			],
+			'wpackagist-plugin/duracelltomi-google-tag-manager' => [
+				'activate' => false,
+				'dev' => false,
+			],
+			'wpackagist-plugin/limit-login-attempts-reloaded' => [
+				'activate' => true,
+				'dev' => false,
+			],
+			'wpackagist-plugin/redirection' => [
+				'activate' => true,
+				'dev' => false,
+			],
+			'wpackagist-plugin/spatie-ray' => [
+				'activate' => true,
+				'dev' => true,
+			],
+			'wpackagist-plugin/webp-express' => [
+				'activate' => true,
+				'dev' => false,
+			],
+			'wpackagist-plugin/wordpress-seo' => [
+				'activate' => false,
+				'dev' => false,
+			],
+			'wpackagist-plugin/wp-super-cache' => [
+				'activate' => true,
+				'dev' => false,
+			],
+			'wpackagist-plugin/wpvulnerability' => [
+				'activate' => true,
+				'dev' => false,
+			],
+		];
+
 		// Let the installer choose their mail plugin
 		$mail_plugins = [
 			'WordPress Simple SMTP (choose if unsure)' => 'wpackagist-plugin/simple-smtp',
@@ -551,12 +590,24 @@ class CreateSite extends WP_CLI_Command {
 			}
 		} while ( ! preg_match( "/^[0-{$max_option}]$/", $mail_option ) );
 		$mail_plugin = array_values( $mail_plugins )[ $mail_option ];
-		$plugins['always'][] = $mail_plugin;
+		$plugins[ $mail_plugin ] = [
+			'activate' => true,
+			'dev' => false,
+		];
 
-		Helpers::composer_command( 'require ' . implode( ' ', $plugins['always'] ), $this->install_directory );
-		Helpers::composer_command( 'require --dev ' . implode( ' ', $plugins['dev'] ), $this->install_directory );
+		// Get the plugins
+		Helpers::composer_command( 'require ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => ! $plugin['dev'] ) ) ), $this->install_directory );
+		Helpers::composer_command( 'require --dev ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => $plugin['dev'] ) ) ), $this->install_directory );
 
-		Helpers::wp_command( 'plugin activate --all', $this->wp_directory );
+		// Activate the plugins
+		$plugins_to_activate = [];
+		foreach ( $plugins as $plugin => $options ) {
+			if ( ! $options['activate'] ) {
+				continue;
+			}
+			$plugins_to_activate[] = substr( $plugin, strrpos( $plugin, '/' ) + 1 );
+		}
+		Helpers::wp_command( 'plugin activate ' . implode( ' ', $plugins_to_activate ), $this->wp_directory );
 
 		// Limit login attempts
 		Helpers::wp_add_option( 'limit_login_lockout_notify', '""', true, $this->wp_directory );
@@ -637,7 +688,7 @@ class CreateSite extends WP_CLI_Command {
 	 */
 	private function install_woocommerce() {
 		Helpers::composer_command( 'require wpackagist-plugin/woocommerce wpackagist-plugin/woocommerce-gateway-stripe', $this->install_directory );
-		Helpers::wp_command( 'plugin activate --all', $this->wp_directory );
+		Helpers::wp_command( 'plugin activate woocommerce woocommerce-gateway-stripe', $this->wp_directory );
 
 		// Options
 		Helpers::wp_update_option( 'woocommerce_default_country', 'GB', $this->wp_directory );
