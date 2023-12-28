@@ -28,7 +28,7 @@ wp package update
 
 ## Usage
 
-Available commands are listed below. Generally they are designed for use on our [Nebula](https://github.com/eighteen73/nebula) websites unless stated otherwise. For full usage instructions please refer to the [package docs](https://docs.eighteen73.co.uk/wordpress/build-tools/wp-cli/).
+Available commands are listed below. Generally they are designed for use on our [Nebula](https://github.com/eighteen73/nebula) websites unless stated otherwise. For full usage instructions please refer to the [package docs](https://docs.eighteen73.co.uk/wordpress/wp-cli/).
 
 * `create-site` - Create new website
 * `sync` - Import the remote website's database
