@@ -356,7 +356,19 @@ class Sync extends WP_CLI_Command {
 	 */
 	private function fetch_uploads() {
 		$this->print_action_title( 'Fetching uploads' );
-		WP_CLI::line( WP_CLI::colorize( '%y// todo%n' ) );
+
+		// Get local dir
+		$response = wp_upload_dir();
+		$local_dir = escapeshellarg( $response['basedir'] . '/' );
+
+		// Get remote dir
+		$command = "{$this->settings['ssh_command']} \"bash -c \\\"cd {$this->settings['ssh_path']} && {$this->remote_wp} config get WP_CONTENT_DIR\\\"\"";
+		$response = Helpers::cli_command( $command );
+		$remote_dir = escapeshellarg( $response[0] . '/uploads/' );
+
+		// Run as a system command (rather than using the helper) so we see output
+		$command = "rsync -avhP --port={$this->settings['ssh_port']} {$this->settings['ssh_user']}@{$this->settings['ssh_host']}:{$remote_dir} {$local_dir}";
+		system( $command );
 	}
 
 	/**
