@@ -516,23 +516,11 @@ class CreateSite extends WP_CLI_Command {
 		$config_filepath = "{$this->install_directory}/config/application.php";
 
 		$plugins = [
-			'always' => [
-				'eighteen73/pulsar-blocks',
-				'wpackagist-plugin/duracelltomi-google-tag-manager',
-				'wpackagist-plugin/limit-login-attempts-reloaded',
-				'wpackagist-plugin/redirection',
-				'wpackagist-plugin/webp-express',
-				'wpackagist-plugin/wordpress-seo',
-				'wpackagist-plugin/wp-super-cache',
-				'wpackagist-plugin/wpvulnerability',
-			],
-			'dev'    => [
-				'wpackagist-plugin/spatie-ray',
-			],
-		];
-
-		$plugins = [
 			'eighteen73/pulsar-blocks' => [
+				'activate' => true,
+				'dev' => false,
+			],
+			'eighteen73/wordpress-thumbor' => [
 				'activate' => true,
 				'dev' => false,
 			],
@@ -549,12 +537,8 @@ class CreateSite extends WP_CLI_Command {
 				'dev' => false,
 			],
 			'wpackagist-plugin/spatie-ray' => [
-				'activate' => true,
+				'activate' => false,
 				'dev' => true,
-			],
-			'wpackagist-plugin/webp-express' => [
-				'activate' => true,
-				'dev' => false,
 			],
 			'wpackagist-plugin/wordpress-seo' => [
 				'activate' => false,
@@ -608,6 +592,27 @@ class CreateSite extends WP_CLI_Command {
 			$plugins_to_activate[] = substr( $plugin, strrpos( $plugin, '/' ) + 1 );
 		}
 		Helpers::wp_command( 'plugin activate ' . implode( ' ', $plugins_to_activate ), $this->wp_directory );
+
+		// Thumbor config
+		$new_config = '';
+		$fp         = fopen( $config_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_config .= $line;
+			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
+				continue;
+			}
+			$new_config .= "\n";
+			$new_config .= "// Thumbor settings\n";
+			$new_config .= "if ( \$_ENV['THUMBOR_URL'] ?? false && \$_ENV['THUMBOR_SECRET_KEY'] ?? false ) {\n";
+			$new_config .= "    define( 'THUMBOR_URL', \$_ENV['THUMBOR_URL'] );\n";
+			$new_config .= "    define( 'THUMBOR_SECRET_KEY', \$_ENV['THUMBOR_SECRET_KEY'] );\n";
+			$new_config .= "}\n";
+		}
+		fclose( $fp );
+		file_put_contents( $config_filepath, $new_config );
+		Helpers::cli_command( 'echo "\n# Thumbor\nTHUMBOR_URL=\nTHUMBOR_SECRET_KEY=\n" >> ' . escapeshellarg( "{$this->install_directory}/.env" ) );
+		Helpers::cli_command( 'echo "\n# Thumbor\nTHUMBOR_URL=\nTHUMBOR_SECRET_KEY=\n" >> ' . escapeshellarg( "{$this->install_directory}/.env.example" ) );
 
 		// Limit login attempts
 		Helpers::wp_add_option( 'limit_login_lockout_notify', '""', true, $this->wp_directory );
