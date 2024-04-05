@@ -234,6 +234,7 @@ class Sync extends WP_CLI_Command {
 		// Possible `wp` locations, with the most preferable ones first
 		$possible_paths = [
 			'./vendor/bin/wp',
+			'~/.config/composer/vendor/bin/wp',
 			'/opt/homebrew/bin/wp',
 			'/usr/local/bin/wp',
 			'wp',
@@ -256,6 +257,7 @@ class Sync extends WP_CLI_Command {
 		// Possible `wp` locations, with the most preferable ones first
 		$possible_paths = [
 			"{$this->settings['ssh_path']}/vendor/bin/wp",
+			'~/.config/composer/vendor/bin/wp',
 			'/usr/local/bin/wp',
 			'wp',
 		];
