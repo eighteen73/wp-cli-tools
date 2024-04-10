@@ -524,6 +524,10 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
+			'wpackagist-plugin/block-visibility' => [
+				'activate' => false,
+				'dev' => false,
+			],
 			'wpackagist-plugin/duracelltomi-google-tag-manager' => [
 				'activate' => false,
 				'dev' => false,
