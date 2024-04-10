@@ -537,7 +537,7 @@ class CreateSite extends WP_CLI_Command {
 				'dev' => true,
 			],
 			'wpackagist-plugin/wordfence' => [
-				'activate' => true,
+				'activate' => false,
 				'dev' => false,
 			],
 			'wpackagist-plugin/wordpress-seo' => [
