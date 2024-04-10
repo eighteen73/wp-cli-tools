@@ -71,7 +71,7 @@ class JustLaunched extends WP_CLI_Command {
 		$this->change_domain();
 		$this->reset_data_and_caches();
 
-		WP_CLI::line();
+		WP_CLI::log( '' );
 		WP_CLI::success( 'Complete' );
 	}
 
@@ -87,9 +87,9 @@ class JustLaunched extends WP_CLI_Command {
 
 		// Search and replace for domain changes
 		foreach ( $this->old_domains as $old_domain ) {
-			WP_CLI::line();
-			WP_CLI::line( "Replacing: {$old_domain} → {$this->new_domain}" );
-			WP_CLI::line();
+			WP_CLI::log( '' );
+			WP_CLI::log( "Replacing: {$old_domain} → {$this->new_domain}" );
+			WP_CLI::log( '' );
 			Helpers::wp_command(
 				'search-replace "//' . $old_domain . '" "//' . $this->new_domain . '"',
 				null,
@@ -104,17 +104,17 @@ class JustLaunched extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function reset_data_and_caches(): void {
-		WP_CLI::line();
-		WP_CLI::line( 'Clearing caches' );
-		WP_CLI::line();
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Clearing caches' );
+		WP_CLI::log( '' );
 		Helpers::wp_command( 'transient delete --all', null, false );
 		Helpers::wp_command( 'cache flush', null, false );
 
 		$has_yoast = ! empty( Helpers::wp_command( 'plugin status wordpress-seo' ) );
 		if ( $has_yoast ) {
-			WP_CLI::line();
-			WP_CLI::line( 'Reindexing Yoast' );
-			WP_CLI::line();
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Reindexing Yoast' );
+			WP_CLI::log( '' );
 			Helpers::wp_command( 'yoast index --reindex', null, false );
 		}
 	}

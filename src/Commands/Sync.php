@@ -138,11 +138,11 @@ class Sync extends WP_CLI_Command {
 		if ( $done_something ) {
 			$this->clear_caches();
 		} else {
-			WP_CLI::line();
+			WP_CLI::log( '' );
 			WP_CLI::warning( 'You may have intended to run "wp eighteen73 sync --database" to update your local database.' );
 		}
 
-		WP_CLI::line();
+		WP_CLI::log( '' );
 		WP_CLI::success( 'Complete' );
 	}
 
@@ -319,9 +319,9 @@ class Sync extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function print_action_title( string $title ) {
-		WP_CLI::line( WP_CLI::colorize( '%b' ) );
-		WP_CLI::line( strtoupper( $title ) );
-		WP_CLI::line( WP_CLI::colorize( str_pad( '', strlen( $title ), '~' ) . '%n' ) );
+		WP_CLI::log( WP_CLI::colorize( '%b' ) );
+		WP_CLI::log( strtoupper( $title ) );
+		WP_CLI::log( WP_CLI::colorize( str_pad( '', strlen( $title ), '~' ) . '%n' ) );
 	}
 
 	/**
@@ -344,7 +344,7 @@ class Sync extends WP_CLI_Command {
 	 */
 	private function enable_stripe_test_mode() {
 		if ( $this->is_plugin_installed_and_active( 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php' ) ) {
-			WP_CLI::line( 'Enabling Stripe test mode' );
+			WP_CLI::log( 'Enabling Stripe test mode' );
 			$option             = get_option( 'woocommerce_stripe_settings' );
 			$option['testmode'] = 'yes';
 			update_option( 'woocommerce_stripe_settings', $option );

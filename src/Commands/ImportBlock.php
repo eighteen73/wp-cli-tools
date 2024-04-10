@@ -40,9 +40,9 @@ class ImportBlock {
 		// TODO Copy each block into the theme
 
 		$dir = get_template_directory();
-		WP_CLI::line();
+		WP_CLI::log( '' );
 		foreach ( $blocks as $block ) {
-			WP_CLI::line( "Copying {$block} to {$dir}" );
+			WP_CLI::log( "Copying {$block} to {$dir}" );
 		}
 	}
 
@@ -65,17 +65,17 @@ class ImportBlock {
 	 * @return array
 	 */
 	private function ask_user_for_blocks(): array {
-		WP_CLI::line( 'Available blocks:' );
+		WP_CLI::log( 'Available blocks:' );
 		foreach ( $this->all_blocks as $block ) {
-			WP_CLI::line( '  ' . $block );
+			WP_CLI::log( '  ' . $block );
 		}
 		do {
 			if ( isset( $valid_blocks ) ) {
-				WP_CLI::line();
-				WP_CLI::line( 'Invalid block(s)' );
+				WP_CLI::log( '' );
+				WP_CLI::log( 'Invalid block(s)' );
 			}
-			WP_CLI::line();
-			WP_CLI::line( 'Which blocks (comma separated) would you like to add?' );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Which blocks (comma separated) would you like to add?' );
 			WP_CLI::out( '> ' );
 			$blocks = strtolower( trim( fgets( STDIN ) ) );
 			$blocks = (array) preg_split( '/[\s,]/', $blocks );

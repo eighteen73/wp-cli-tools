@@ -74,7 +74,7 @@ class StyleGuide extends WP_CLI_Command {
 
 		$this->add_links_to_parent_page( $this->parent_page_id );
 
-		WP_CLI::line();
+		WP_CLI::log( '' );
 		WP_CLI::success( 'Complete' );
 	}
 
@@ -163,7 +163,7 @@ class StyleGuide extends WP_CLI_Command {
 			if ( ! ( $this->options['force'] ?? false ) ) {
 				$answer = Helpers::ask( "Page \"/{$path}\" already exists. Overwrite with new content?", true );
 				if ( ! $answer ) {
-					WP_CLI::line( " ... Skipping /{$path}" );
+					WP_CLI::log( " ... Skipping /{$path}" );
 
 					if ( $is_parent_page ) {
 						$this->parent_page_id = $page_id;

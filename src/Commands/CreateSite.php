@@ -133,28 +133,28 @@ class CreateSite extends WP_CLI_Command {
 		}
 
 		if ( $this->options['multisite'] ) {
-			WP_CLI::line();
-			WP_CLI::line();
+			WP_CLI::log( '' );
+			WP_CLI::log( '' );
 			WP_CLI::success( 'Your multisite is ready.' );
-			WP_CLI::line( 'Important: Refer to https://docs.eighteen73.co.uk/wordpress/build-tools/nebula for multisite Apache/NGINX configuration.' );
-			WP_CLI::line();
-			WP_CLI::line( 'Network admin:  ' . $this->site_url . '/wp/wp-admin/network' );
-			WP_CLI::line();
-			WP_CLI::line( 'Website URL:    ' . $this->site_url );
-			WP_CLI::line( 'Website admin:  ' . $this->site_url . '/wp/wp-login.php' );
-			WP_CLI::line();
-			WP_CLI::line( 'Username:       ' . $this->site_username );
-			WP_CLI::line( 'Password:       ' . $this->site_password );
+			WP_CLI::log( 'Important: Refer to https://docs.eighteen73.co.uk/wordpress/build-tools/nebula for multisite Apache/NGINX configuration.' );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Network admin:  ' . $this->site_url . '/wp/wp-admin/network' );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Website URL:    ' . $this->site_url );
+			WP_CLI::log( 'Website admin:  ' . $this->site_url . '/wp/wp-login.php' );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Username:       ' . $this->site_username );
+			WP_CLI::log( 'Password:       ' . $this->site_password );
 		} else {
-			WP_CLI::line();
-			WP_CLI::line();
+			WP_CLI::log( '' );
+			WP_CLI::log( '' );
 			WP_CLI::success( 'Your website is ready.' );
-			WP_CLI::line();
-			WP_CLI::line( 'URL:       ' . $this->site_url );
-			WP_CLI::line( 'Admin:     ' . $this->site_url . '/wp/wp-login.php' );
-			WP_CLI::line();
-			WP_CLI::line( 'Username:  ' . $this->site_username );
-			WP_CLI::line( 'Password:  ' . $this->site_password );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'URL:       ' . $this->site_url );
+			WP_CLI::log( 'Admin:     ' . $this->site_url . '/wp/wp-login.php' );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Username:  ' . $this->site_username );
+			WP_CLI::log( 'Password:  ' . $this->site_password );
 		}
 	}
 
@@ -165,11 +165,11 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function status_message( string $message ) {
-		WP_CLI::line();
-		WP_CLI::line( str_pad( '', strlen( $message ) + 3, '*' ) );
-		WP_CLI::line( "* {$message}" );
-		WP_CLI::line( str_pad( '', strlen( $message ) + 3, '*' ) );
-		WP_CLI::line();
+		WP_CLI::log( '' );
+		WP_CLI::log( str_pad( '', strlen( $message ) + 3, '*' ) );
+		WP_CLI::log( "* {$message}" );
+		WP_CLI::log( str_pad( '', strlen( $message ) + 3, '*' ) );
+		WP_CLI::log( '' );
 	}
 
 	/**
@@ -236,7 +236,7 @@ class CreateSite extends WP_CLI_Command {
 	private function download_nebula() {
 		Helpers::composer_command( 'create-project eighteen73/nebula ' . escapeshellarg( $this->install_directory ) . ' --stability=dev', null, false );
 		Helpers::composer_command( 'update', $this->install_directory );
-		WP_CLI::line( '   ... done' );
+		WP_CLI::log( '   ... done' );
 	}
 
 	/**
@@ -270,7 +270,7 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::cli_command( 'npm install --prefix ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) );
 		Helpers::wp_command( 'theme activate pulsar', $this->wp_directory );
 		$this->commit_repo( 'Add Pulsar theme' );
-		WP_CLI::line( '   ... done' );
+		WP_CLI::log( '   ... done' );
 	}
 
 	/**
@@ -288,13 +288,13 @@ class CreateSite extends WP_CLI_Command {
 		}
 		fclose( $fp );
 
-		WP_CLI::line();
-		WP_CLI::line( 'Enter your admin username' );
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Enter your admin username' );
 		WP_CLI::out( '> ' );
 		$this->site_username = strtolower( trim( fgets( STDIN ) ) );
 
-		WP_CLI::line();
-		WP_CLI::line( 'Enter your admin email address' );
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Enter your admin email address' );
 		WP_CLI::out( '> ' );
 		$this->site_email = strtolower( trim( fgets( STDIN ) ) );
 
@@ -329,7 +329,7 @@ class CreateSite extends WP_CLI_Command {
 		if ( preg_match( '/^Admin password: (.+)\s/', $output, $matches ) ) {
 			$this->site_password = trim( $matches[1] );
 		}
-		WP_CLI::line( '   ... done' );
+		WP_CLI::log( '   ... done' );
 	}
 
 	/**
@@ -378,10 +378,10 @@ class CreateSite extends WP_CLI_Command {
 
 		// Gather the multisite options
 		do {
-			WP_CLI::line();
-			WP_CLI::line( 'Would like sites to use sub-directories or sub-domains: [0]' );
-			WP_CLI::line( '  [0] Sub-directories' );
-			WP_CLI::line( '  [1] Sub-domains' );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Would like sites to use sub-directories or sub-domains: [0]' );
+			WP_CLI::log( '  [0] Sub-directories' );
+			WP_CLI::log( '  [1] Sub-domains' );
 			WP_CLI::out( '> ' );
 			$option = strtolower( trim( fgets( STDIN ) ) );
 			if ( $option === '' ) {
@@ -557,11 +557,11 @@ class CreateSite extends WP_CLI_Command {
 		];
 		$max_option   = count( $mail_plugins ) - 1;
 		do {
-			WP_CLI::line();
-			WP_CLI::line( 'Mail plugin: [0]' );
+			WP_CLI::log( '' );
+			WP_CLI::log( 'Mail plugin: [0]' );
 			for ( $i = 0; $i <= $max_option; $i++ ) {
 				$plugin_name = array_keys( $mail_plugins )[ $i ];
-				WP_CLI::line( "  [{$i}] {$plugin_name}" );
+				WP_CLI::log( "  [{$i}] {$plugin_name}" );
 			}
 			WP_CLI::out( '> ' );
 			$mail_option = strtolower( trim( fgets( STDIN ) ) );
@@ -670,7 +670,7 @@ class CreateSite extends WP_CLI_Command {
 
 		$this->commit_repo( 'Add house plugins' );
 
-		WP_CLI::line( '   ... done' );
+		WP_CLI::log( '   ... done' );
 	}
 
 	/**
@@ -710,6 +710,6 @@ class CreateSite extends WP_CLI_Command {
 
 		$this->commit_repo( 'Add WooCommerce' );
 
-		WP_CLI::line( '   ... done' );
+		WP_CLI::log( '   ... done' );
 	}
 }
