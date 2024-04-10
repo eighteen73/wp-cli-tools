@@ -343,7 +343,7 @@ class Sync extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function enable_stripe_test_mode() {
-		if ( $this->is_plugin_installed_and_active( 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php' ) ) {
+		if ( $this->is_plugin_available_and_active( 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php' ) ) {
 			WP_CLI::log( 'Enabling Stripe test mode' );
 			$option             = get_option( 'woocommerce_stripe_settings' );
 			$option['testmode'] = 'yes';
@@ -386,9 +386,10 @@ class Sync extends WP_CLI_Command {
 		$this->print_action_title( 'Activating Plugins' );
 
 		foreach ( $this->settings['plugins']['activate'] as $plugin ) {
-			if ( $this->is_plugin_installed( $plugin ) ) {
+			if ( $this->is_plugin_available( $plugin ) ) {
 				if ( ! $this->is_plugin_active( $plugin ) ) {
-					Helpers::wp_command( "plugin activate {$plugin}" );
+					WP_CLI::log( $plugin );
+					Helpers::wp_command( "plugin install {$plugin} --activate" );
 				} else {
 					WP_CLI::warning( "Plugin {$plugin} is already active" );
 				}
@@ -411,8 +412,9 @@ class Sync extends WP_CLI_Command {
 		$this->print_action_title( 'Deactivating Plugins' );
 
 		foreach ( $this->settings['plugins']['deactivate'] as $plugin ) {
-			if ( $this->is_plugin_installed( $plugin ) ) {
+			if ( $this->is_plugin_available( $plugin ) ) {
 				if ( $this->is_plugin_active( $plugin ) ) {
+					WP_CLI::log( $plugin );
 					Helpers::wp_command( "plugin deactivate {$plugin}" );
 				} else {
 					WP_CLI::warning( "Plugin {$plugin} is already inactive" );
@@ -430,10 +432,16 @@ class Sync extends WP_CLI_Command {
 	 *
 	 * @return bool
 	 */
-	private function is_plugin_installed( string $plugin_slug ): bool {
+	private function is_plugin_available( string $plugin_slug ): bool {
 		$installed_plugins = get_plugins();
 
-		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
+		foreach ( $installed_plugins as $plugin ) {
+			if ( $plugin['TextDomain'] === $plugin_slug ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -444,11 +452,9 @@ class Sync extends WP_CLI_Command {
 	 * @return bool
 	 */
 	private function is_plugin_active( string $plugin_slug ): bool {
-		if ( is_plugin_active( $plugin_slug ) ) {
-			return true;
-		}
+		$result = Helpers::wp_command( "plugin status {$plugin_slug}" );
 
-		return false;
+		return str_contains( $result, 'Status: Active' );
 	}
 
 	/**
@@ -458,8 +464,8 @@ class Sync extends WP_CLI_Command {
 	 *
 	 * @return bool
 	 */
-	private function is_plugin_installed_and_active( string $plugin_slug ): bool {
-		return $this->is_plugin_installed( $plugin_slug ) && $this->is_plugin_installed( $plugin_slug );
+	private function is_plugin_available_and_active( string $plugin_slug ): bool {
+		return $this->is_plugin_available( $plugin_slug ) && $this->is_plugin_active( $plugin_slug );
 	}
 
 	/**
