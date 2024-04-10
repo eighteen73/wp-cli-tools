@@ -528,10 +528,6 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => false,
 				'dev' => false,
 			],
-			'wpackagist-plugin/limit-login-attempts-reloaded' => [
-				'activate' => true,
-				'dev' => false,
-			],
 			'wpackagist-plugin/redirection' => [
 				'activate' => true,
 				'dev' => false,
@@ -540,15 +536,15 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => false,
 				'dev' => true,
 			],
+			'wpackagist-plugin/wordfence' => [
+				'activate' => true,
+				'dev' => false,
+			],
 			'wpackagist-plugin/wordpress-seo' => [
 				'activate' => false,
 				'dev' => false,
 			],
 			'wpackagist-plugin/wp-super-cache' => [
-				'activate' => true,
-				'dev' => false,
-			],
-			'wpackagist-plugin/wpvulnerability' => [
 				'activate' => true,
 				'dev' => false,
 			],
@@ -613,15 +609,6 @@ class CreateSite extends WP_CLI_Command {
 		file_put_contents( $config_filepath, $new_config );
 		Helpers::cli_command( 'echo "\n# Thumbor\nTHUMBOR_URL=\nTHUMBOR_SECRET_KEY=\n" >> ' . escapeshellarg( "{$this->install_directory}/.env" ) );
 		Helpers::cli_command( 'echo "\n# Thumbor\nTHUMBOR_URL=\nTHUMBOR_SECRET_KEY=\n" >> ' . escapeshellarg( "{$this->install_directory}/.env.example" ) );
-
-		// Limit login attempts
-		Helpers::wp_add_option( 'limit_login_lockout_notify', '""', true, $this->wp_directory );
-		Helpers::wp_add_option( 'limit_login_show_warning_badge', '0', true, $this->wp_directory );
-		Helpers::wp_add_option( 'limit_login_hide_dashboard_widget', '1', true, $this->wp_directory );
-		Helpers::wp_add_option( 'limit_login_show_top_level_menu_item', '0', true, $this->wp_directory );
-		Helpers::wp_add_option( 'limit_login_onboarding_popup_shown', '1', true, $this->wp_directory );
-		Helpers::wp_add_option( 'limit_login_auto_update_choice', '0', true, $this->wp_directory );
-		Helpers::wp_command( 'transient delete llar_welcome_redirect', $this->wp_directory );
 
 		// Redirection
 		Helpers::wp_command( 'redirection database install', $this->wp_directory );
