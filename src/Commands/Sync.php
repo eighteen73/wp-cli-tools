@@ -32,6 +32,7 @@ class Sync extends WP_CLI_Command {
 	private array $options = [
 		'database'         => false,
 		'uploads'          => false,
+		'urls'             => false,
 		'active_plugins'   => true,
 		'inactive_plugins' => true,
 	];
@@ -120,6 +121,11 @@ class Sync extends WP_CLI_Command {
 			$done_something = true;
 			$this->fetch_database();
 			$this->enable_stripe_test_mode();
+		}
+
+		if ( $this->options['urls'] ) {
+			$done_something = true;
+			$this->replace_urls();
 		}
 
 		if ( $this->options['uploads'] ) {
@@ -288,6 +294,9 @@ class Sync extends WP_CLI_Command {
 		if ( isset( $assoc_args['database'] ) ) {
 			$this->options['database'] = in_array( $assoc_args['database'], $true_values, true );
 		}
+		if ( isset( $assoc_args['urls'] ) ) {
+			$this->options['urls'] = in_array( $assoc_args['urls'], $true_values, true );
+		}
 		if ( isset( $assoc_args['uploads'] ) ) {
 			$this->options['uploads'] = in_array( $assoc_args['uploads'], $true_values, true );
 		}
@@ -335,6 +344,24 @@ class Sync extends WP_CLI_Command {
 		$pipe    = $this->has_pv ? ' | pv | ' : ' | ';
 		$command = "{$this->settings['ssh_command']} \"bash -c \\\"cd {$this->settings['ssh_path']} && {$this->remote_wp} db export --quiet --single-transaction - | gzip -cf\\\"\" {$pipe} gunzip -c | {$this->local_wp} db import --quiet -";
 		system( $command );
+	}
+
+	/**
+	 * Replace URLs in the local database using remote and local home URLs
+	 *
+	 * @return void
+	 */
+	private function replace_urls() {
+		$this->print_action_title( 'Replacing URLs' );
+
+		$get_remote_home_url_command = "{$this->settings['ssh_command']} \"cd {$this->settings['ssh_path']} && {$this->remote_wp} option get home\"";
+		$remote_home_url = trim( shell_exec( $get_remote_home_url_command ) );
+
+		$get_local_home_url_command = "{$this->local_wp} option get home";
+		$local_home_url = trim( shell_exec( $get_local_home_url_command ) );
+
+		$search_replace_command = "{$this->local_wp} search-replace '{$remote_home_url}' '{$local_home_url}' --skip-columns=guid --quiet";
+		system( $search_replace_command );
 	}
 
 	/**
