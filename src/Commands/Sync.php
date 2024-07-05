@@ -342,7 +342,7 @@ class Sync extends WP_CLI_Command {
 		$this->print_action_title( 'Fetching database' );
 
 		$pipe    = $this->has_pv ? ' | pv | ' : ' | ';
-		$command = "{$this->settings['ssh_command']} \"bash -c \\\"cd {$this->settings['ssh_path']} && {$this->remote_wp} db export --quiet --single-transaction - | gzip -cf\\\"\" {$pipe} gunzip -c | {$this->local_wp} db import --quiet -";
+		$command = "{$this->settings['ssh_command']} \"bash -c \\\"cd {$this->settings['ssh_path']} && {$this->remote_wp} db export --quiet --single-transaction --set-gtid-purged=OFF - | gzip -cf\\\"\" {$pipe} gunzip -c | {$this->local_wp} db import --quiet -";
 		system( $command );
 	}
 
