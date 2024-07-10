@@ -344,7 +344,7 @@ class Sync extends WP_CLI_Command {
 		// Does the remote server support the "gtid-purged" setting?
 		// Why? ... Modern MySQL servers with replication need this disabled for transferable DB dumps but MariaDB will error if it's used
 		$gtid_purged_command = "{$this->remote_wp} db query \"SHOW VARIABLES LIKE 'gtid_purged'\G\"";
-		$gtid_purged_exists = ! empty( trim( shell_exec( $gtid_purged_command ) ) );
+		$gtid_purged_exists = ! empty( trim( shell_exec( $gtid_purged_command ) ?: '' ) );
 		$gtid_purged_flag = $gtid_purged_exists ? '--set-gtid-purged=OFF' : '';
 
 		$pipe    = $this->has_pv ? ' | pv | ' : ' | ';
