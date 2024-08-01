@@ -524,6 +524,10 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
+			'wpackagist-plugin/attachment-taxonomies' => [
+				'activate' => true,
+				'dev' => true,
+			],
 			'wpackagist-plugin/block-visibility' => [
 				'activate' => false,
 				'dev' => false,
