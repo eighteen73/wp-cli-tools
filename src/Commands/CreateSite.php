@@ -532,7 +532,7 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => false,
 				'dev' => false,
 			],
-			'wpackagist-plugin/docket-cache' => [
+			'wpackagist-plugin/sqlite-object-cache' => [
 				'activate' => true,
 				'dev' => false,
 			],
@@ -625,14 +625,19 @@ class CreateSite extends WP_CLI_Command {
 		// Redirection
 		Helpers::wp_command( 'redirection database install', $this->wp_directory );
 
-		// Docket Cache (for object caching)
-		$docket_config_filepath = "{$this->install_directory}/web/app/docket-cache-data/options.php";
-		$docket_config = "<?php\n";
-		$docket_config .= "return [\n";
-		$docket_config .= "    'DOCKET_CACHE_MENUCACHE' => 'enable',\n";
-		$docket_config .= "];\n";
-		$docket_config .= "/*@DOCKET_CACHE_EOF*/\n";
-		file_put_contents( $docket_config_filepath, $docket_config );
+		// SQLite Object Cache
+		$new_config = '';
+		$fp         = fopen( $config_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_config .= $line;
+			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
+				continue;
+			}
+			$new_config .= "Config::define( 'WP_SQLITE_OBJECT_CACHE_DB_FILE', \$root_dir . '/private/object-cache.sqlite' );\n";
+		}
+		fclose( $fp );
+		file_put_contents( $config_filepath, $new_config );
 
 		// WP Super Cache (for page caching)
 		$new_config = '';
