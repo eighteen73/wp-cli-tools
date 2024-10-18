@@ -526,13 +526,9 @@ class CreateSite extends WP_CLI_Command {
 			],
 			'wpackagist-plugin/attachment-taxonomies' => [
 				'activate' => true,
-				'dev' => true,
-			],
-			'wpackagist-plugin/block-visibility' => [
-				'activate' => false,
 				'dev' => false,
 			],
-			'wpackagist-plugin/sqlite-object-cache' => [
+			'wpackagist-plugin/block-visibility' => [
 				'activate' => true,
 				'dev' => false,
 			],
@@ -540,13 +536,21 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => false,
 				'dev' => false,
 			],
-			'wpackagist-plugin/redirection' => [
+			'wpackagist-plugin/imsanity' => [
 				'activate' => true,
 				'dev' => false,
 			],
-			'wpackagist-plugin/spatie-ray' => [
-				'activate' => false,
+			'wpackagist-plugin/query-monitor' => [
+				'activate' => true,
 				'dev' => true,
+			],
+			'wpackagist-plugin/redirection' => [
+				'activate' => false,
+				'dev' => false,
+			],
+			'wpackagist-plugin/sqlite-object-cache' => [
+				'activate' => false,
+				'dev' => false,
 			],
 			'wpackagist-plugin/wordfence' => [
 				'activate' => false,
@@ -557,7 +561,7 @@ class CreateSite extends WP_CLI_Command {
 				'dev' => false,
 			],
 			'wpackagist-plugin/wp-super-cache' => [
-				'activate' => true,
+				'activate' => false,
 				'dev' => false,
 			],
 		];
