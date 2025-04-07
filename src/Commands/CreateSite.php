@@ -80,6 +80,7 @@ class CreateSite extends WP_CLI_Command {
 	private array $options = [
 		'multisite'   => false,
 		'woocommerce' => false,
+		'nebula-branch' => null,
 	];
 
 	/**
@@ -95,6 +96,9 @@ class CreateSite extends WP_CLI_Command {
 	 *
 	 * [--woocommerce]
 	 * : Include WooCommerce
+	 *
+	 * [--nebula-branch]
+	 * : Specify a Nebula branch to use (for development purposes)
 	 *
 	 * ---
 	 *
@@ -190,6 +194,10 @@ class CreateSite extends WP_CLI_Command {
 		} elseif ( isset( $assoc_args['woocommerce'] ) ) {
 			WP_CLI::error( 'Option `--woocommerce` must not have a value' );
 		}
+
+		if ( isset( $assoc_args['nebula-branch'] ) && ! empty( $assoc_args['nebula-branch'] ) ) {
+			$this->options['nebula-branch'] = $assoc_args['nebula-branch'];
+		}
 	}
 
 	/**
@@ -234,7 +242,12 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function download_nebula() {
-		Helpers::composer_command( 'create-project eighteen73/nebula ' . escapeshellarg( $this->install_directory ) . ' --stability=dev', null, false );
+		$command = 'create-project --stability=dev eighteen73/nebula ' . escapeshellarg( $this->install_directory );
+		if ( $this->options['nebula-branch'] ) {
+			$command .= ' dev-' . $this->options['nebula-branch'];
+		}
+
+		Helpers::composer_command( $command, null, false );
 		Helpers::composer_command( 'update', $this->install_directory );
 		WP_CLI::log( '   ... done' );
 	}
