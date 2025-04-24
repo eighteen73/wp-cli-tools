@@ -128,6 +128,9 @@ class CreateSite extends WP_CLI_Command {
 		$this->status_message( 'Installing theme...' );
 		$this->download_pulsar();
 
+		$this->status_message( 'Installing Node packages...' );
+		$this->install_node_packages();
+
 		$this->status_message( 'Installing default plugins...' );
 		$this->install_plugins();
 
@@ -280,9 +283,19 @@ class CreateSite extends WP_CLI_Command {
 	 */
 	private function download_pulsar() {
 		Helpers::composer_command( 'create-project eighteen73/pulsar ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) . ' --stability=dev' );
-		Helpers::cli_command( 'npm install --prefix ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) );
 		Helpers::wp_command( 'theme activate pulsar', $this->wp_directory );
 		$this->commit_repo( 'Add Pulsar theme' );
+		WP_CLI::log( '   ... done' );
+	}
+
+	/**
+	 * Install Packages
+	 *
+	 * @return void
+	 */
+	private function install_node_packages() {
+		Helpers::cli_command( 'npm install --prefix ' . escapeshellarg( $this->install_directory ) );
+		Helpers::cli_command( 'npm prepare --prefix ' . escapeshellarg( $this->install_directory ) );
 		WP_CLI::log( '   ... done' );
 	}
 
