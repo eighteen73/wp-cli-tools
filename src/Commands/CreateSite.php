@@ -619,8 +619,8 @@ class CreateSite extends WP_CLI_Command {
 			$new_config .= "\n";
 			$new_config .= "// Thumbor settings\n";
 			$new_config .= "if ( \$_ENV['THUMBOR_URL'] ?? false && \$_ENV['THUMBOR_SECRET_KEY'] ?? false ) {\n";
-			$new_config .= "    define( 'THUMBOR_URL', \$_ENV['THUMBOR_URL'] );\n";
-			$new_config .= "    define( 'THUMBOR_SECRET_KEY', \$_ENV['THUMBOR_SECRET_KEY'] );\n";
+			$new_config .= "	define( 'THUMBOR_URL', \$_ENV['THUMBOR_URL'] );\n";
+			$new_config .= "	define( 'THUMBOR_SECRET_KEY', \$_ENV['THUMBOR_SECRET_KEY'] );\n";
 			$new_config .= "}\n";
 		}
 		fclose( $fp );
