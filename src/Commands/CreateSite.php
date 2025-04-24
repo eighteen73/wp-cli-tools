@@ -540,6 +540,7 @@ class CreateSite extends WP_CLI_Command {
 	 */
 	private function install_plugins() {
 		$config_filepath = "{$this->install_directory}/config/application.php";
+		$dev_config_filepath = "{$this->install_directory}/config/environments/development.php";
 
 		$plugins = [
 			'eighteen73/pulsar-blocks' => [
@@ -570,6 +571,10 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
+			'wpackagist-plugin/simple-smtp' => [
+				'activate' => true,
+				'dev' => false,
+			],
 			'wpackagist-plugin/spatie-ray' => [
 				'activate' => false,
 				'dev' => true,
@@ -586,31 +591,6 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
-		];
-
-		// Let the installer choose their mail plugin
-		$mail_plugins = [
-			'WordPress Simple SMTP (choose if unsure)' => 'wpackagist-plugin/simple-smtp',
-			'Mailgun for WordPress'                    => 'wpackagist-plugin/mailgun',
-		];
-		$max_option   = count( $mail_plugins ) - 1;
-		do {
-			WP_CLI::log( '' );
-			WP_CLI::log( 'Mail plugin: [0]' );
-			for ( $i = 0; $i <= $max_option; $i++ ) {
-				$plugin_name = array_keys( $mail_plugins )[ $i ];
-				WP_CLI::log( "  [{$i}] {$plugin_name}" );
-			}
-			WP_CLI::out( '> ' );
-			$mail_option = strtolower( trim( fgets( STDIN ) ) );
-			if ( $mail_option === '' ) {
-				$mail_option = '0';
-			}
-		} while ( ! preg_match( "/^[0-{$max_option}]$/", $mail_option ) );
-		$mail_plugin = array_values( $mail_plugins )[ $mail_option ];
-		$plugins[ $mail_plugin ] = [
-			'activate' => true,
-			'dev' => false,
 		];
 
 		// Get the plugins
@@ -679,46 +659,41 @@ class CreateSite extends WP_CLI_Command {
 		fclose( $fp );
 		file_put_contents( $config_filepath, $new_config );
 
-		// Email config depends on the plugin chosen
-		if ( $mail_plugin === 'wpackagist-plugin/simple-smtp' ) {
-			// Default to the local mail catcher typically used by our team)
-			$value = escapeshellarg(
-				json_encode(
-					[
-						'host' => '127.0.0.1',
-						'port' => '1025',
-						'user' => '',
-						'pass' => '',
-						'from' => '',
-						'fromname' => '',
-						'sec' => 'off',
-					]
-				)
-			);
-			Helpers::wp_add_option( 'wpssmtp_smtp', $value, true, $this->wp_directory, true );
-		} elseif ( $mail_plugin === 'wpackagist-plugin/mailgun' ) {
-			$value = escapeshellarg(
-				json_encode(
-					[
-						'region'        => 'eu',
-						'useAPI'        => '1',
-						'domain'        => 'site-email.com',
-						'apiKey'        => '',
-						'username'      => '',
-						'password'      => '',
-						'secure'        => '1',
-						'sectype'       => 'ssl',
-						'track-clicks'  => 'no',
-						'track-opens'   => '1',
-						'from-address'  => '',
-						'from-name'     => '',
-						'override-from' => '0',
-						'campaign-id'   => '',
-					]
-				)
-			);
-			Helpers::wp_add_option( 'mailgun', $value, true, $this->wp_directory, true );
+		// Simple SMTP (Pre-fill some Mailgun details for convenience later)
+		$value = escapeshellarg(
+			json_encode(
+				[
+					'host' => 'smtp.eu.mailgun.org',
+					'port' => '587',
+					'user' => '',
+					'pass' => '',
+					'from' => '',
+					'fromname' => '',
+					'sec' => 'tls',
+				]
+			)
+		);
+		Helpers::wp_add_option( 'wpssmtp_smtp', $value, true, $this->wp_directory, true );
+
+		// Simple SMTP (local mail catcher for development)
+		$ports = [ 2525, 8025, 1025 ]; // Fallback is last in list
+		foreach ($ports as $port) {
+			if (@fsockopen('127.0.0.1', $port, timeout: 0.3)) {
+				break;
+			}
 		}
+		$fp = fopen( $dev_config_filepath, 'a' );
+		fwrite( $fp, "\n" );
+		fwrite( $fp, "// Local mail catcher\n" );
+		fwrite( $fp, "Config::define( 'SMTP_HOST', '127.0.0.1' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_PORT', {$port} );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_USER', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_PASS', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_FROM', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_FROMNAME', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_SEC', 'off' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_AUTH', false );\n" );
+		fclose( $fp );
 
 		$this->commit_repo( 'Add house plugins' );
 
