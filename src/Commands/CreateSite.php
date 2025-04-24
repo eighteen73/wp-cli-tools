@@ -261,7 +261,7 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function create_repo() {
-		Helpers::git_command( 'init', $this->install_directory );
+		Helpers::git_command( 'init -b develop', $this->install_directory );
 		$this->commit_repo( 'Initial commit' );
 	}
 
