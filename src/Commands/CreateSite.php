@@ -541,6 +541,7 @@ class CreateSite extends WP_CLI_Command {
 	private function install_plugins() {
 		$config_filepath = "{$this->install_directory}/config/application.php";
 		$dev_config_filepath = "{$this->install_directory}/config/environments/development.php";
+		$gitignore_filepath = "{$this->install_directory}/.gitignore";
 
 		$plugins = [
 			'eighteen73/pulsar-blocks' => [
@@ -597,6 +598,21 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::composer_command( 'require ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => ! $plugin['dev'] ) ) ), $this->install_directory );
 		Helpers::composer_command( 'require --dev ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => $plugin['dev'] ) ) ), $this->install_directory );
 
+		// SQLite Object Cache
+		// (done before activation so it doesn't generate an incorrectly placed SQLite file)
+		$new_config = '';
+		$fp         = fopen( $config_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_config .= $line;
+			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
+				continue;
+			}
+			$new_config .= "Config::define( 'WP_SQLITE_OBJECT_CACHE_DB_FILE', \$root_dir . '/private/object-cache.sqlite' );\n";
+		}
+		fclose( $fp );
+		file_put_contents( $config_filepath, $new_config );
+
 		// Activate the plugins
 		$plugins_to_activate = [];
 		foreach ( $plugins as $plugin => $options ) {
@@ -631,20 +647,6 @@ class CreateSite extends WP_CLI_Command {
 		// Redirection
 		Helpers::wp_command( 'redirection database install', $this->wp_directory );
 
-		// SQLite Object Cache
-		$new_config = '';
-		$fp         = fopen( $config_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_config .= $line;
-			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
-				continue;
-			}
-			$new_config .= "Config::define( 'WP_SQLITE_OBJECT_CACHE_DB_FILE', \$root_dir . '/private/object-cache.sqlite' );\n";
-		}
-		fclose( $fp );
-		file_put_contents( $config_filepath, $new_config );
-
 		// WP Super Cache (for page caching)
 		$new_config = '';
 		$fp         = fopen( $config_filepath, 'r' );
@@ -658,6 +660,19 @@ class CreateSite extends WP_CLI_Command {
 		}
 		fclose( $fp );
 		file_put_contents( $config_filepath, $new_config );
+
+		$new_gitignore = '';
+		$fp         = fopen( $gitignore_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_gitignore .= $line;
+			if ( ! str_contains( $line, 'object-cache.php' ) ) {
+				continue;
+			}
+			$new_gitignore .= "web/app/wp-cache-config.php\n";
+		}
+		fclose( $fp );
+		file_put_contents( $gitignore_filepath, $new_gitignore );
 
 		// Simple SMTP (Pre-fill some Mailgun details for convenience later)
 		$value = escapeshellarg(
