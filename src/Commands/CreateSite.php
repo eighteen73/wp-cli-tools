@@ -695,8 +695,8 @@ class CreateSite extends WP_CLI_Command {
 
 		// Simple SMTP (local mail catcher for development)
 		$ports = [ 2525, 8025, 1025 ]; // Fallback is last in list
-		foreach ($ports as $port) {
-			if (@fsockopen('127.0.0.1', $port, timeout: 0.3)) {
+		foreach ( $ports as $port ) {
+			if ( @fsockopen( '127.0.0.1', $port, timeout: 0.3 ) ) {
 				break;
 			}
 		}
