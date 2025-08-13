@@ -548,10 +548,6 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
-			'eighteen73/wordpress-thumbor' => [
-				'activate' => true,
-				'dev' => false,
-			],
 			'wpackagist-plugin/attachment-taxonomies' => [
 				'activate' => true,
 				'dev' => false,
@@ -580,19 +576,7 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
-			'wpackagist-plugin/sqlite-object-cache' => [
-				'activate' => false,
-				'dev' => false,
-			],
-			'wpackagist-plugin/wordfence' => [
-				'activate' => false,
-				'dev' => false,
-			],
 			'wpackagist-plugin/wordpress-seo' => [
-				'activate' => false,
-				'dev' => false,
-			],
-			'wpackagist-plugin/wp-super-cache' => [
 				'activate' => false,
 				'dev' => false,
 			],
@@ -612,70 +596,8 @@ class CreateSite extends WP_CLI_Command {
 		}
 		Helpers::wp_command( 'plugin activate ' . implode( ' ', $plugins_to_activate ), $this->wp_directory );
 
-		// Thumbor config
-		$new_config = '';
-		$fp         = fopen( $config_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_config .= $line;
-			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
-				continue;
-			}
-			$new_config .= "\n";
-			$new_config .= "// Thumbor settings\n";
-			$new_config .= "if ( \$_ENV['THUMBOR_URL'] ?? false && \$_ENV['THUMBOR_SECRET_KEY'] ?? false ) {\n";
-			$new_config .= "	define( 'THUMBOR_URL', \$_ENV['THUMBOR_URL'] );\n";
-			$new_config .= "	define( 'THUMBOR_SECRET_KEY', \$_ENV['THUMBOR_SECRET_KEY'] );\n";
-			$new_config .= "}\n";
-		}
-		fclose( $fp );
-		file_put_contents( $config_filepath, $new_config );
-		Helpers::cli_command( 'echo "\n# Thumbor\nTHUMBOR_URL=\nTHUMBOR_SECRET_KEY=\n" >> ' . escapeshellarg( "{$this->install_directory}/.env" ) );
-		Helpers::cli_command( 'echo "\n# Thumbor\nTHUMBOR_URL=\nTHUMBOR_SECRET_KEY=\n" >> ' . escapeshellarg( "{$this->install_directory}/.env.example" ) );
-
 		// Redirection
 		Helpers::wp_command( 'redirection database install', $this->wp_directory );
-
-		// WP Super Cache (for page caching)
-		$new_config = '';
-		$fp         = fopen( $config_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_config .= $line;
-			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
-				continue;
-			}
-			$new_config .= "Config::define( 'WPCACHEHOME', Config::get( 'WP_CONTENT_DIR' ) . '/plugins/wp-super-cache/' );\n";
-		}
-		fclose( $fp );
-		file_put_contents( $config_filepath, $new_config );
-
-		$new_gitignore = '';
-		$fp         = fopen( $gitignore_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_gitignore .= $line;
-			if ( ! str_contains( $line, 'object-cache.php' ) ) {
-				continue;
-			}
-			$new_gitignore .= "web/app/wp-cache-config.php\n";
-		}
-		fclose( $fp );
-		file_put_contents( $gitignore_filepath, $new_gitignore );
-
-		// SQLite Object Cache
-		$new_config = '';
-		$fp         = fopen( $config_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_config .= $line;
-			if ( ! str_contains( $line, 'WP_CACHE' ) ) {
-				continue;
-			}
-			$new_config .= "Config::define( 'WP_SQLITE_OBJECT_CACHE_DB_FILE', \$root_dir . '/private/object-cache.sqlite' );\n";
-		}
-		fclose( $fp );
-		file_put_contents( $config_filepath, $new_config );
 
 		// Simple SMTP (Pre-fill some Mailgun details for convenience later)
 		$value = escapeshellarg(
