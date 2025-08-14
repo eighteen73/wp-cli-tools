@@ -544,6 +544,10 @@ class CreateSite extends WP_CLI_Command {
 		$gitignore_filepath = "{$this->install_directory}/.gitignore";
 
 		$plugins = [
+			'eighteen73-plugin/kinsta-mu-plugins' => [
+				'activate' => true,
+				'dev' => false,
+			],
 			'eighteen73/pulsar-blocks' => [
 				'activate' => true,
 				'dev' => false,
@@ -576,11 +580,18 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
+			'wpackagist-plugin/two-factor' => [
+				'activate' => true,
+				'dev' => false,
+			],
 			'wpackagist-plugin/wordpress-seo' => [
 				'activate' => false,
 				'dev' => false,
 			],
 		];
+
+		// Add our repo
+		Helpers::composer_command( 'config repositories.eighteen73 composer https://code.eighteen73.co.uk/pkg/wordpress', $this->install_directory );
 
 		// Get the plugins
 		Helpers::composer_command( 'require ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => ! $plugin['dev'] ) ) ), $this->install_directory );
