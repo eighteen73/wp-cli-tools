@@ -646,6 +646,13 @@ class CreateSite extends WP_CLI_Command {
 		fwrite( $fp, "Config::define( 'SMTP_AUTH', false );\n" );
 		fclose( $fp );
 
+		// Ignore Yoast's llms.txt
+		$fp = fopen( $gitignore_filepath, 'a' );
+		fwrite( $fp, "\n" );
+		fwrite( $fp, "# Yoast\n" );
+		fwrite( $fp, "/web/llms.txt\n" );
+		fclose( $fp );
+
 		$this->commit_repo( 'Add house plugins' );
 
 		WP_CLI::log( '   ... done' );
