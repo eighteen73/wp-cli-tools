@@ -7,6 +7,7 @@
 
 namespace Eighteen73\WP_CLI;
 
+use Exception;
 use WP_CLI;
 
 /**
@@ -227,5 +228,40 @@ class Helpers {
 			}
 		} while ( $response === '' );
 		return $response;
+	}
+
+	/**
+	 * Check for a clean git repo
+	 *
+	 * @return bool
+	 */
+	public static function repo_is_clean(): bool {
+		$result_code = null;
+		try {
+			// Cannot use the normal command helper above because we need the response code
+			exec( 'git diff --quiet && git diff --cached --quiet && test -z "$(git status --porcelain)"', $output, $result_code );
+		} catch ( Exception $e ) {
+			// Silent fail, we only need the response code
+		}
+		return $result_code === 0;
+	}
+
+	/**
+	 * Check for a Composer package
+	 *
+	 * @param string $name The composer package name
+	 *
+	 * @return bool
+	 */
+	public static function has_package( string $name ): bool {
+		$result_code = null;
+		try {
+			// Cannot use the normal command helper above because we need the response code
+			$name = escapeshellarg( $name );
+			exec( "composer show {$name}", $output, $result_code );
+		} catch ( Exception $e ) {
+			// A fail just tells is the package isn't installed
+		}
+		return $result_code === 0;
 	}
 }
