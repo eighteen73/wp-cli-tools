@@ -81,12 +81,10 @@ class KinstaPrep extends WP_CLI_Command {
 		// Install the plugin
 		if ( $this->is_composer ) {
 			$this->composerInstall();
+			$this->addConfig();
 		} else {
 			$this->manualInstall();
 		}
-
-		// Add the config
-		$this->addConfig();
 
 		// Make a commit
 		$git_dir =
@@ -148,7 +146,7 @@ class KinstaPrep extends WP_CLI_Command {
 	}
 
 	/**
-	 * Add the plugin's config
+	 * Add the plugin's config (Bedrock/Nebula only)
 	 */
 	private function addConfig(): void {
 		$config_values = [
@@ -158,7 +156,6 @@ class KinstaPrep extends WP_CLI_Command {
 			'KINSTAMU_WHITELABEL' => 'true',
 		];
 
-		// Bedrock/Nebula config
 		$config_filepath = $this->root_directory . '/config/application.php';
 		if ( file_exists( $config_filepath ) ) {
 
@@ -188,41 +185,6 @@ class KinstaPrep extends WP_CLI_Command {
 				foreach ( $config_values as $key => $value ) {
 					$new_config .= 'Config::define( \'' . $key . '\', ' . $value . ' );' . "\n";
 				}
-			}
-			fclose( $fp );
-			file_put_contents( $config_filepath, $new_config );
-
-			return;
-		}
-
-		// Vanilla WordPress
-		$config_filepath = getcwd() . '/wp-config.php';
-		if ( file_exists( $config_filepath ) ) {
-
-			// Check it's not already in there and bail if so
-			$existing_config = file_get_contents( $config_filepath );
-			foreach ( $config_values as $key => $value ) {
-				if ( str_contains( $existing_config, $key ) ) {
-					WP_CLI::log( 'Config already exists so we\'ll leave it untouched.' );
-					return;
-				}
-			}
-
-			// Add the config after the salts
-			$new_config = '';
-			$fp         = fopen( $config_filepath, 'r' );
-			while ( ! feof( $fp ) ) {
-				$line        = fgets( $fp );
-				$new_config .= $line;
-				if ( ! str_contains( $line, '$table_prefix' ) ) {
-					continue;
-				}
-				$new_config .= "\n";
-				$new_config .= "/**\n";
-				$new_config .= " * Kinsta\n";
-				$new_config .= " */\n";
-				$new_config .= 'define( \'KINSTAMU_CAPABILITY\', \'publish_pages\' );' . "\n";
-				$new_config .= 'define( \'KINSTAMU_WHITELABEL\', true );' . "\n";
 			}
 			fclose( $fp );
 			file_put_contents( $config_filepath, $new_config );
