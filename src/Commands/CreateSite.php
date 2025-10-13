@@ -646,6 +646,35 @@ class CreateSite extends WP_CLI_Command {
 		fwrite( $fp, "Config::define( 'SMTP_AUTH', false );\n" );
 		fclose( $fp );
 
+		// Ignore Yoast's llms.txt
+		$fp = fopen( $gitignore_filepath, 'a' );
+		fwrite( $fp, "\n" );
+		fwrite( $fp, "# Yoast\n" );
+		fwrite( $fp, "/web/llms.txt\n" );
+		fclose( $fp );
+
+		// Kinsta config
+		$new_config = '';
+		$fp         = fopen( $config_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_config .= $line;
+			if ( ! str_contains( $line, 'NONCE_SALT' ) ) {
+				continue;
+			}
+			$new_config .= "\n";
+			$new_config .= "/**\n";
+			$new_config .= " * Kinsta\n";
+			$new_config .= " */\n";
+			$new_config .= '$mu_plugins_url = Config::get( \'WP_CONTENT_URL\' ) . \'/mu-plugins\';' . "\n";
+			$new_config .= "Config::define( 'KINSTA_CDN_USERDIRS', 'app' );\n";
+			$new_config .= 'Config::define( \'KINSTAMU_CUSTOM_MUPLUGIN_URL\', "{$mu_plugins_url}/kinsta-mu-plugins" );' . "\n";
+			$new_config .= "Config::define( 'KINSTAMU_CAPABILITY', 'publish_pages' );\n";
+			$new_config .= "Config::define( 'KINSTAMU_WHITELABEL', true );\n";
+		}
+		fclose( $fp );
+		file_put_contents( $config_filepath, $new_config );
+
 		$this->commit_repo( 'Add house plugins' );
 
 		WP_CLI::log( '   ... done' );

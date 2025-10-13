@@ -195,7 +195,7 @@ class StyleGuide extends WP_CLI_Command {
 	 *
 	 * @return void
 	 */
-	protected function update_style_guide_page( int $parent_page_id, int $page_id, string $title, string $style_guide_content_filepath, string $special_insert = null ): void {
+	protected function update_style_guide_page( int $parent_page_id, int $page_id, string $title, string $style_guide_content_filepath, ?string $special_insert = null ): void {
 		$arg = [
 			'post_parent'  => $parent_page_id,
 			'ID'           => $page_id,
