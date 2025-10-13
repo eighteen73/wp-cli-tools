@@ -82,6 +82,7 @@ class KinstaPrep extends WP_CLI_Command {
 		if ( $this->is_composer ) {
 			$this->composerInstall();
 			$this->addConfig();
+			$this->removeIncompatiblePlugins();
 		} else {
 			$this->manualInstall();
 		}
@@ -91,7 +92,14 @@ class KinstaPrep extends WP_CLI_Command {
 		Helpers::git_command( 'add .' );
 		Helpers::git_command( 'commit -m "Add kinsta-mu-plugins"' );
 
+		WP_CLI::line( '' );
 		WP_CLI::success( 'Complete' );
+
+		WP_CLI::line( '' );
+		WP_CLI::line( "After deploying your latest code please \e[3mmanually\e[0m uninstall and delete the following where applicable:" );
+		WP_CLI::line( ' - Wordfence (you may need to install an alternative 2FA plugin)' );
+		WP_CLI::line( " - Wordpress Thumbor (you may need to run `\e[3mwp media regenerate --only-missing\e[0m`)" );
+		WP_CLI::line( ' - WP Rocket' );
 	}
 
 
@@ -109,11 +117,11 @@ class KinstaPrep extends WP_CLI_Command {
 			}
 		}
 		if ( ! $has_our_repo ) {
-			Helpers::composer_command( 'config repositories.eighteen73 composer https://code.eighteen73.co.uk/pkg/wordpress', null, false );
+			Helpers::composer_command( 'config repositories.eighteen73 composer https://code.eighteen73.co.uk/pkg/wordpress' );
 		}
 
 		// Add the plugin (no harm if it's already there)
-		Helpers::composer_command( 'require eighteen73-plugin/kinsta-mu-plugins', null, false );
+		Helpers::composer_command( 'require eighteen73-plugin/kinsta-mu-plugins' );
 	}
 
 	/**
@@ -189,5 +197,21 @@ class KinstaPrep extends WP_CLI_Command {
 			fclose( $fp );
 			file_put_contents( $config_filepath, $new_config );
 		}
+	}
+
+	/**
+	 * Remove unwanted plugins. We have to assume these have already been disabled, which they were during migrations.
+	 */
+	private function removeIncompatiblePlugins(): void {
+		$incompatible_plugins = [
+			'wpackagist-plugin/docket-cache',
+			'wpackagist-plugin/litespeed-cache',
+			'wpackagist-plugin/redis-cache',
+			'wpackagist-plugin/sqlite-object-cache',
+			'wpackagist-plugin/webp-express',
+			'wpackagist-plugin/wp-super-cache',
+		];
+		$all_plugins = implode( ' ', $incompatible_plugins );
+		Helpers::composer_command( "remove $all_plugins" );
 	}
 }
