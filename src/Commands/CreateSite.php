@@ -284,6 +284,12 @@ class CreateSite extends WP_CLI_Command {
 	private function download_pulsar() {
 		Helpers::composer_command( 'create-project eighteen73/pulsar ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) . ' --stability=dev' );
 		Helpers::wp_command( 'theme activate pulsar', $this->wp_directory );
+
+		$gitignore_filepath = "{$this->install_directory}/.gitignore";
+		$gitignore = file_get_contents( $gitignore_filepath );
+		$gitignore = str_replace( '#!web/app/themes/your-custom-theme/', "#!web/app/themes/your-custom-theme/\n!web/app/themes/pulsar/", $gitignore );
+		file_put_contents( $gitignore_filepath, $gitignore );
+
 		$this->commit_repo( 'Add Pulsar theme' );
 		WP_CLI::log( '   ... done' );
 	}
