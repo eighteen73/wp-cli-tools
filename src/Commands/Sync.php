@@ -403,7 +403,7 @@ class Sync extends WP_CLI_Command {
 		$remote_dir = escapeshellarg( $response[0] . '/uploads/' );
 
 		// Run as a system command (rather than using the helper) so we see output
-		$command = "rsync -avhP --port={$this->settings['ssh_port']} {$this->settings['ssh_user']}@{$this->settings['ssh_host']}:{$remote_dir} {$local_dir}";
+		$command = "rsync -avhP -e 'ssh -p {$this->settings['ssh_port']}' {$this->settings['ssh_user']}@{$this->settings['ssh_host']}:{$remote_dir} {$local_dir}";
 		system( $command );
 	}
 
