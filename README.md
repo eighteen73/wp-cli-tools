@@ -35,10 +35,6 @@ Available commands are listed below. Generally they are designed for use on our 
 * `first-sync` - Initialise a local website using a remote database
 * `style-guide` - Add predetermined pages of content for visual checks and sign-off
 
-There is also a special command that may be run on a live website. It does require this package to be available in the remote environment though.
-
-* `just-launched` - Runs useful post-launch operations on a website to prevent some common gotchas
-
 ## Development
 
 For development, you'll probably want to run a local clone of this package.
