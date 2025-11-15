@@ -80,6 +80,7 @@ class CreateSite extends WP_CLI_Command {
 	private array $options = [
 		'multisite'   => false,
 		'woocommerce' => false,
+		'spark' => false,
 		'nebula-branch' => null,
 	];
 
@@ -96,6 +97,9 @@ class CreateSite extends WP_CLI_Command {
 	 *
 	 * [--woocommerce]
 	 * : Include WooCommerce
+	 *
+	 * [--spark]
+	 * : Include the Spark pattern library
 	 *
 	 * [--nebula-branch]
 	 * : Specify a Nebula branch to use (for development purposes)
@@ -133,6 +137,11 @@ class CreateSite extends WP_CLI_Command {
 
 		$this->status_message( 'Installing default plugins...' );
 		$this->install_plugins();
+
+		if ( $this->options['spark'] ) {
+			$this->status_message( 'Installing Spark...' );
+			$this->install_spark();
+		}
 
 		if ( $this->options['woocommerce'] ) {
 			$this->status_message( 'Installing WooCommerce...' );
@@ -186,16 +195,15 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function check_args( array $assoc_args ) {
-		if ( isset( $assoc_args['multisite'] ) && $assoc_args['multisite'] === true ) {
-			$this->options['multisite'] = true;
-		} elseif ( isset( $assoc_args['multisite'] ) ) {
-			WP_CLI::error( 'Option `--multisite` must not have a value' );
-		}
 
-		if ( isset( $assoc_args['woocommerce'] ) && $assoc_args['woocommerce'] === true ) {
-			$this->options['woocommerce'] = true;
-		} elseif ( isset( $assoc_args['woocommerce'] ) ) {
-			WP_CLI::error( 'Option `--woocommerce` must not have a value' );
+		// Simply options (no value allowed)
+		$options = [ 'multisite', 'woocommerce', 'spark' ];
+		foreach ( $options as $option ) {
+			if ( isset( $assoc_args[ $option ] ) && $assoc_args[ $option ] === true ) {
+				$this->options[ $option ] = true;
+			} elseif ( isset( $assoc_args[ $option ] ) ) {
+				WP_CLI::error( "Option `--{$option}` must not have a value" );
+			}
 		}
 
 		if ( isset( $assoc_args['nebula-branch'] ) && ! empty( $assoc_args['nebula-branch'] ) ) {
@@ -722,6 +730,79 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::wp_command( 'wc tax create --user=1 --country=GB --rate=0 --class=zero-rate', $this->wp_directory );
 
 		$this->commit_repo( 'Add WooCommerce' );
+
+		WP_CLI::log( '   ... done' );
+	}
+
+	/**
+	 * Install and configure Spark
+	 *
+	 * @return void
+	 */
+	private function install_spark() {
+		$config_filepath = "{$this->install_directory}/config/application.php";
+		$dotenv_filepath = "{$this->install_directory}/.env";
+
+		Helpers::composer_command( 'require eighteen73/spark', $this->install_directory );
+		Helpers::wp_command( 'plugin activate spark', $this->wp_directory );
+
+		// Spark config
+		$new_config = '';
+		$fp         = fopen( $config_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_config .= $line;
+			if ( ! str_contains( $line, 'NONCE_SALT' ) ) {
+				continue;
+			}
+			$new_config .= "\n";
+			$new_config .= "/**\n";
+			$new_config .= " * Spark\n";
+			$new_config .= " */\n";
+			$new_config .= 'Config::define( \'SPARK_API_URI\', $_ENV[\'SPARK_API_URI\'] ?? \'\' );' . "\n";
+			$new_config .= 'Config::define( \'SPARK_API_USERNAME\', $_ENV[\'SPARK_API_USERNAME\'] ?? \'\' );' . "\n";
+			$new_config .= 'Config::define( \'SPARK_API_PASSWORD\', $_ENV[\'SPARK_API_PASSWORD\'] ?? \'\' );' . "\n";
+		}
+		fclose( $fp );
+		file_put_contents( $config_filepath, $new_config );
+
+		// Add the domain to .env.example
+		$new_dotenv = '';
+		$fp         = fopen( "{$dotenv_filepath}.example", 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Spark\n";
+			$new_dotenv .= "SPARK_API_URI=\n";
+			$new_dotenv .= "SPARK_API_USERNAME=\n";
+			$new_dotenv .= "SPARK_API_PASSWORD=\n";
+		}
+		fclose( $fp );
+		file_put_contents( "{$dotenv_filepath}.example", $new_dotenv );
+
+		// Add the domain to .env
+		$new_dotenv = '';
+		$fp         = fopen( "{$dotenv_filepath}", 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Spark\n";
+			$new_dotenv .= "SPARK_API_URI=\n";
+			$new_dotenv .= "SPARK_API_USERNAME=\n";
+			$new_dotenv .= "SPARK_API_PASSWORD=\n";
+		}
+		fclose( $fp );
+		file_put_contents( "{$dotenv_filepath}", $new_dotenv );
+
+		$this->commit_repo( 'Add Spark' );
 
 		WP_CLI::log( '   ... done' );
 	}
