@@ -8,6 +8,7 @@
 namespace Eighteen73\WP_CLI\Commands;
 
 use Eighteen73\WP_CLI\Helpers;
+use Eighteen73\WP_CLI\Traits\WritesConfig;
 use WP_CLI;
 use WP_CLI_Command;
 
@@ -22,6 +23,7 @@ use WP_CLI_Command;
  * @package eighteen73/wpi-cli-tools
  */
 class CreateSite extends WP_CLI_Command {
+	use WritesConfig;
 
 	/**
 	 * Installation directory
@@ -399,22 +401,11 @@ class CreateSite extends WP_CLI_Command {
 	 * @return int|mixed|object|null
 	 */
 	private function install_multisite() {
-		$config_filepath = "{$this->install_directory}/config/application.php";
 		$dotenv_filepath = "{$this->install_directory}/.env";
 		$htaccess_filepath = "{$this->install_directory}/web/.htaccess";
 
-		// Look for the WP_ALLOW_MULTISITE setting in in config/application.php and enable
-		$fp = fopen( $config_filepath, 'r+' );
-		while ( ! feof( $fp ) ) {
-			$line = fgets( $fp );
-			if ( ! str_contains( $line, 'WP_ALLOW_MULTISITE' ) ) {
-				continue;
-			}
-			$new_line = str_replace( 'false', 'true', $line );
-			fseek( $fp, -strlen( $line ), SEEK_CUR );
-			fwrite( $fp, $new_line );
-		}
-		fclose( $fp );
+		// TODO Can I skip this given that it's set below?
+		// $this->editConfigValue('WP_ALLOW_MULTISITE', true);
 
 		// Gather the multisite options
 		do {
@@ -487,27 +478,16 @@ class CreateSite extends WP_CLI_Command {
 		file_put_contents( $dotenv_filepath, $new_dotenv );
 
 		// Write the new config
-		$new_config = '';
-		$fp         = fopen( $config_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_config .= $line;
-			if ( ! str_contains( $line, 'WP_ALLOW_MULTISITE' ) ) {
-				continue;
-			}
-			$new_config .= "Config::define( 'MULTISITE', true );\n";
-			if ( $subdomain_install ) {
-				$new_config .= "Config::define( 'SUBDOMAIN_INSTALL', true );\n";
-			} else {
-				$new_config .= "Config::define( 'SUBDOMAIN_INSTALL', false );\n";
-			}
-			$new_config .= "Config::define( 'DOMAIN_CURRENT_SITE', \$_ENV['DOMAIN_CURRENT_SITE'] );\n";
-			$new_config .= "Config::define( 'PATH_CURRENT_SITE', '/' );\n";
-			$new_config .= "Config::define( 'SITE_ID_CURRENT_SITE', 1 );\n";
-			$new_config .= "Config::define( 'BLOG_ID_CURRENT_SITE', 1 );";
-		}
-		fclose( $fp );
-		file_put_contents( $config_filepath, $new_config );
+		$multisite_config = [
+			"Config::define( 'WP_ALLOW_MULTISITE', true );",
+			"Config::define( 'MULTISITE', true );",
+			"Config::define( 'SUBDOMAIN_INSTALL', ".($subdomain_install ? 'true' : 'false')." );\n",
+			"Config::define( 'DOMAIN_CURRENT_SITE', \$_ENV['DOMAIN_CURRENT_SITE'] );",
+			"Config::define( 'PATH_CURRENT_SITE', '/' );",
+			"Config::define( 'SITE_ID_CURRENT_SITE', 1 );",
+			"Config::define( 'BLOG_ID_CURRENT_SITE', 1 );",
+		];
+		$this->addConfigFile('multisite.php', implode("\n", $multisite_config));
 
 		// Write the .htaccess (this file will not exist yet)
 		$htaccess_content  = "# BEGIN WordPress Multisite\n";
@@ -553,7 +533,6 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_plugins() {
-		$config_filepath = "{$this->install_directory}/config/application.php";
 		$dev_config_filepath = "{$this->install_directory}/config/environments/development.php";
 		$gitignore_filepath = "{$this->install_directory}/.gitignore";
 
@@ -647,6 +626,7 @@ class CreateSite extends WP_CLI_Command {
 				break;
 			}
 		}
+
 		$fp = fopen( $dev_config_filepath, 'a' );
 		fwrite( $fp, "\n" );
 		fwrite( $fp, "// Local mail catcher\n" );
@@ -668,26 +648,14 @@ class CreateSite extends WP_CLI_Command {
 		fclose( $fp );
 
 		// Kinsta config
-		$new_config = '';
-		$fp         = fopen( $config_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_config .= $line;
-			if ( ! str_contains( $line, 'NONCE_SALT' ) ) {
-				continue;
-			}
-			$new_config .= "\n";
-			$new_config .= "/**\n";
-			$new_config .= " * Kinsta\n";
-			$new_config .= " */\n";
-			$new_config .= '$mu_plugins_url = Config::get( \'WP_CONTENT_URL\' ) . \'/mu-plugins\';' . "\n";
-			$new_config .= "Config::define( 'KINSTA_CDN_USERDIRS', 'app' );\n";
-			$new_config .= 'Config::define( \'KINSTAMU_CUSTOM_MUPLUGIN_URL\', "{$mu_plugins_url}/kinsta-mu-plugins" );' . "\n";
-			$new_config .= "Config::define( 'KINSTAMU_CAPABILITY', 'publish_pages' );\n";
-			$new_config .= "Config::define( 'KINSTAMU_WHITELABEL', true );\n";
-		}
-		fclose( $fp );
-		file_put_contents( $config_filepath, $new_config );
+		$kinsta_config = [
+			'$mu_plugins_url = Config::get( \'WP_CONTENT_URL\' ) . \'/mu-plugins\';',
+			"Config::define( 'KINSTA_CDN_USERDIRS', 'app' );",
+			'Config::define( \'KINSTAMU_CUSTOM_MUPLUGIN_URL\', "{$mu_plugins_url}/kinsta-mu-plugins" );',
+			"Config::define( 'KINSTAMU_CAPABILITY', 'publish_pages' );",
+			"Config::define( 'KINSTAMU_WHITELABEL', true );",
+		];
+		$this->addConfigFile('kinsta.php', implode("\n", $kinsta_config));
 
 		$this->commit_repo( 'Add house plugins' );
 
@@ -740,31 +708,18 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_spark() {
-		$config_filepath = "{$this->install_directory}/config/application.php";
 		$dotenv_filepath = "{$this->install_directory}/.env";
 
 		Helpers::composer_command( 'require eighteen73/spark', $this->install_directory );
 		Helpers::wp_command( 'plugin activate spark', $this->wp_directory );
 
 		// Spark config
-		$new_config = '';
-		$fp         = fopen( $config_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_config .= $line;
-			if ( ! str_contains( $line, 'NONCE_SALT' ) ) {
-				continue;
-			}
-			$new_config .= "\n";
-			$new_config .= "/**\n";
-			$new_config .= " * Spark\n";
-			$new_config .= " */\n";
-			$new_config .= 'Config::define( \'SPARK_API_URI\', $_ENV[\'SPARK_API_URI\'] ?? \'\' );' . "\n";
-			$new_config .= 'Config::define( \'SPARK_API_USERNAME\', $_ENV[\'SPARK_API_USERNAME\'] ?? \'\' );' . "\n";
-			$new_config .= 'Config::define( \'SPARK_API_PASSWORD\', $_ENV[\'SPARK_API_PASSWORD\'] ?? \'\' );' . "\n";
-		}
-		fclose( $fp );
-		file_put_contents( $config_filepath, $new_config );
+		$spark_config = [
+			'Config::define( \'SPARK_API_URI\', $_ENV[\'SPARK_API_URI\'] ?? \'\' );',
+			'Config::define( \'SPARK_API_USERNAME\', $_ENV[\'SPARK_API_USERNAME\'] ?? \'\' );',
+			'Config::define( \'SPARK_API_PASSWORD\', $_ENV[\'SPARK_API_PASSWORD\'] ?? \'\' );',
+		];
+		$this->addConfigFile('spark.php', implode("\n", $spark_config));
 
 		// Add the domain to .env.example
 		$new_dotenv = '';
