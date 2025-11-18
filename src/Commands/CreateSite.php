@@ -401,11 +401,7 @@ class CreateSite extends WP_CLI_Command {
 	 * @return int|mixed|object|null
 	 */
 	private function install_multisite() {
-		$dotenv_filepath = "{$this->install_directory}/.env";
 		$htaccess_filepath = "{$this->install_directory}/web/.htaccess";
-
-		// TODO Can I skip this given that it's set below?
-		// $this->editConfigValue('WP_ALLOW_MULTISITE', true);
 
 		// Gather the multisite options
 		do {
@@ -434,60 +430,37 @@ class CreateSite extends WP_CLI_Command {
 			$options['subdomains'] = null;
 		}
 
-		// Do the install
-		$output = Helpers::wp_command(
-			[
-				'core multisite-install',
-				$options,
-			],
-			$this->wp_directory
-		);
-
 		$domain_current_site = substr( $this->site_url, strpos( $this->site_url, '//' ) + 2 );
-
-		// Add the domain to .env.example
-		$new_dotenv = '';
-		$fp         = fopen( "{$dotenv_filepath}.example", 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_dotenv .= $line;
-			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
-				continue;
-			}
-			$new_dotenv .= "\n";
-			$new_dotenv .= "# Multisite\n";
-			$new_dotenv .= "DOMAIN_CURRENT_SITE=\"\"\n";
-		}
-		fclose( $fp );
-		file_put_contents( "{$dotenv_filepath}.example", $new_dotenv );
-
-		// Add the domain to .env
-		$new_dotenv = '';
-		$fp         = fopen( $dotenv_filepath, 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_dotenv .= $line;
-			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
-				continue;
-			}
-			$new_dotenv .= "\n";
-			$new_dotenv .= "# Multisite\n";
-			$new_dotenv .= 'DOMAIN_CURRENT_SITE="' . $domain_current_site . "\"\n";
-		}
-		fclose( $fp );
-		file_put_contents( $dotenv_filepath, $new_dotenv );
 
 		// Write the new config
 		$multisite_config = [
 			"Config::define( 'WP_ALLOW_MULTISITE', true );",
 			"Config::define( 'MULTISITE', true );",
-			"Config::define( 'SUBDOMAIN_INSTALL', ".($subdomain_install ? 'true' : 'false')." );\n",
+			"Config::define( 'SUBDOMAIN_INSTALL', " . ( $subdomain_install ? 'true' : 'false' ) . ' );',
 			"Config::define( 'DOMAIN_CURRENT_SITE', \$_ENV['DOMAIN_CURRENT_SITE'] );",
 			"Config::define( 'PATH_CURRENT_SITE', '/' );",
 			"Config::define( 'SITE_ID_CURRENT_SITE', 1 );",
 			"Config::define( 'BLOG_ID_CURRENT_SITE', 1 );",
 		];
-		$this->addConfigFile('multisite.php', implode("\n", $multisite_config));
+		$this->add_config_file( 'multisite.php', implode( "\n", $multisite_config ) );
+
+		$new_dotenv = "\n";
+		$new_dotenv .= "# Multisite\n";
+		$new_dotenv .= "DOMAIN_CURRENT_SITE=\"\"\n";
+		$this->add_config_lines(
+			"{$this->install_directory}/.env.example",
+			'WP_SITEURL',
+			$new_dotenv
+		);
+
+		$new_dotenv = "\n";
+		$new_dotenv .= "# Multisite\n";
+		$new_dotenv .= "DOMAIN_CURRENT_SITE=\"{$domain_current_site}\"\n";
+		$this->add_config_lines(
+			"{$this->install_directory}/.env",
+			'WP_SITEURL',
+			$new_dotenv
+		);
 
 		// Write the .htaccess (this file will not exist yet)
 		$htaccess_content  = "# BEGIN WordPress Multisite\n";
@@ -523,6 +496,15 @@ class CreateSite extends WP_CLI_Command {
 		$htaccess_content .= "\n";
 		$htaccess_content .= "# END WordPress Multisite\n";
 		file_put_contents( $htaccess_filepath, $htaccess_content );
+
+		// Do the install
+		$output = Helpers::wp_command(
+			[
+				'core multisite-install',
+				$options,
+			],
+			$this->wp_directory
+		);
 
 		return $output;
 	}
@@ -655,7 +637,7 @@ class CreateSite extends WP_CLI_Command {
 			"Config::define( 'KINSTAMU_CAPABILITY', 'publish_pages' );",
 			"Config::define( 'KINSTAMU_WHITELABEL', true );",
 		];
-		$this->addConfigFile('kinsta.php', implode("\n", $kinsta_config));
+		$this->add_config_file( 'kinsta.php', implode( "\n", $kinsta_config ) );
 
 		$this->commit_repo( 'Add house plugins' );
 
@@ -708,54 +690,40 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_spark() {
-		$dotenv_filepath = "{$this->install_directory}/.env";
-
 		Helpers::composer_command( 'require eighteen73/spark', $this->install_directory );
 		Helpers::wp_command( 'plugin activate spark', $this->wp_directory );
 
 		// Spark config
 		$spark_config = [
-			'Config::define( \'SPARK_API_URI\', $_ENV[\'SPARK_API_URI\'] ?? \'\' );',
-			'Config::define( \'SPARK_API_USERNAME\', $_ENV[\'SPARK_API_USERNAME\'] ?? \'\' );',
-			'Config::define( \'SPARK_API_PASSWORD\', $_ENV[\'SPARK_API_PASSWORD\'] ?? \'\' );',
+			"Config::define( 'SPARK_API_URI', \$_ENV['SPARK_API_URI'] ?? '' );",
+			"Config::define( 'SPARK_API_USERNAME', \$_ENV['SPARK_API_USERNAME'] ?? '' );",
+			"Config::define( 'SPARK_API_PASSWORD', \$_ENV['SPARK_API_PASSWORD'] ?? '' );",
 		];
-		$this->addConfigFile('spark.php', implode("\n", $spark_config));
+		$this->add_config_file( 'spark.php', implode( "\n", $spark_config ) );
 
 		// Add the domain to .env.example
-		$new_dotenv = '';
-		$fp         = fopen( "{$dotenv_filepath}.example", 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_dotenv .= $line;
-			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
-				continue;
-			}
-			$new_dotenv .= "\n";
-			$new_dotenv .= "# Spark\n";
-			$new_dotenv .= "SPARK_API_URI=\n";
-			$new_dotenv .= "SPARK_API_USERNAME=\n";
-			$new_dotenv .= "SPARK_API_PASSWORD=\n";
-		}
-		fclose( $fp );
-		file_put_contents( "{$dotenv_filepath}.example", $new_dotenv );
+		$new_dotenv = "\n";
+		$new_dotenv .= "# Spark\n";
+		$new_dotenv .= "SPARK_API_URI=\n";
+		$new_dotenv .= "SPARK_API_USERNAME=\n";
+		$new_dotenv .= "SPARK_API_PASSWORD=\n";
+		$this->add_config_lines(
+			"{$this->install_directory}/.env.example",
+			'WP_SITEURL',
+			$new_dotenv
+		);
 
 		// Add the domain to .env
-		$new_dotenv = '';
-		$fp         = fopen( "{$dotenv_filepath}", 'r' );
-		while ( ! feof( $fp ) ) {
-			$line        = fgets( $fp );
-			$new_dotenv .= $line;
-			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
-				continue;
-			}
-			$new_dotenv .= "\n";
-			$new_dotenv .= "# Spark\n";
-			$new_dotenv .= "SPARK_API_URI=\n";
-			$new_dotenv .= "SPARK_API_USERNAME=\n";
-			$new_dotenv .= "SPARK_API_PASSWORD=\n";
-		}
-		fclose( $fp );
-		file_put_contents( "{$dotenv_filepath}", $new_dotenv );
+		$new_dotenv = "\n";
+		$new_dotenv .= "# Spark\n";
+		$new_dotenv .= "SPARK_API_URI=\n";
+		$new_dotenv .= "SPARK_API_USERNAME=\n";
+		$new_dotenv .= "SPARK_API_PASSWORD=\n";
+		$this->add_config_lines(
+			"{$this->install_directory}/.env",
+			'WP_SITEURL',
+			$new_dotenv
+		);
 
 		$this->commit_repo( 'Add Spark' );
 
