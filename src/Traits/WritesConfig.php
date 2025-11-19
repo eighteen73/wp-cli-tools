@@ -7,9 +7,10 @@ trait WritesConfig {
 	/**
 	 * Adds lines of configuration to an existing file
 	 *
-	 * @param string $config_filepath The name of the configuration file to be created.
-	 * @param string $after_line_containing Insert after this line
-	 * @param mixed  $new_lines New content to insert
+	 * @param string      $config_filepath The name of the configuration file to be created.
+	 * @param mixed       $new_lines New content to insert
+	 * @param bool|null   $append Append to the end of the file
+	 * @param string|null $after_line_containing Insert after this line
 	 * @return void
 	 */
 	private function add_config_lines(
