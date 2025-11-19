@@ -12,19 +12,29 @@ trait WritesConfig {
 	 * @param mixed  $new_lines New content to insert
 	 * @return void
 	 */
-	private function add_config_lines( string $config_filepath, string $after_line_containing, mixed $new_lines ): void {
+	private function add_config_lines(
+		string $config_filepath,
+		mixed $new_lines,
+		?bool $append = false,
+		?string $after_line_containing = null
+	): void {
 		$new_file = '';
 
 		$fp = fopen( $config_filepath, 'r' );
 		while ( ! feof( $fp ) ) {
 			$line = fgets( $fp );
 			$new_file .= $line;
-			if ( ! str_contains( $line, $after_line_containing ) ) {
+			if ( $append || ! $after_line_containing || ! str_contains( $line, $after_line_containing ) ) {
 				continue;
 			}
 			$new_file .= $new_lines;
 		}
 		fclose( $fp );
+
+		if ( $append && ! $after_line_containing ) {
+			$new_file .= $new_lines;
+		}
+
 		file_put_contents( $config_filepath, $new_file );
 	}
 

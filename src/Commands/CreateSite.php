@@ -295,10 +295,12 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::composer_command( 'create-project eighteen73/pulsar ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) . ' --stability=dev' );
 		Helpers::wp_command( 'theme activate pulsar', $this->wp_directory );
 
-		$gitignore_filepath = "{$this->install_directory}/.gitignore";
-		$gitignore = file_get_contents( $gitignore_filepath );
-		$gitignore = str_replace( '#!web/app/themes/your-custom-theme/', "#!web/app/themes/your-custom-theme/\n!web/app/themes/pulsar/", $gitignore );
-		file_put_contents( $gitignore_filepath, $gitignore );
+		$new_ignore = "!web/app/themes/pulsar/\n";
+		$this->add_config_lines(
+			config_filepath: "{$this->install_directory}/.gitignore",
+			new_lines: $new_ignore,
+			after_line_containing: 'your-custom-theme'
+		);
 
 		$this->commit_repo( 'Add Pulsar theme' );
 		WP_CLI::log( '   ... done' );
@@ -448,18 +450,18 @@ class CreateSite extends WP_CLI_Command {
 		$new_dotenv .= "# Multisite\n";
 		$new_dotenv .= "DOMAIN_CURRENT_SITE=\"\"\n";
 		$this->add_config_lines(
-			"{$this->install_directory}/.env.example",
-			'WP_SITEURL',
-			$new_dotenv
+			config_filepath: "{$this->install_directory}/.env.example",
+			new_lines: $new_dotenv,
+			after_line_containing: 'WP_SITEURL'
 		);
 
 		$new_dotenv = "\n";
 		$new_dotenv .= "# Multisite\n";
 		$new_dotenv .= "DOMAIN_CURRENT_SITE=\"{$domain_current_site}\"\n";
 		$this->add_config_lines(
-			"{$this->install_directory}/.env",
-			'WP_SITEURL',
-			$new_dotenv
+			config_filepath: "{$this->install_directory}/.env",
+			new_lines: $new_dotenv,
+			after_line_containing: 'WP_SITEURL'
 		);
 
 		// Write the .htaccess (this file will not exist yet)
@@ -515,9 +517,6 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_plugins() {
-		$dev_config_filepath = "{$this->install_directory}/config/environments/development.php";
-		$gitignore_filepath = "{$this->install_directory}/.gitignore";
-
 		$plugins = [
 			'eighteen73-plugin/kinsta-mu-plugins' => [
 				'activate' => true,
@@ -609,25 +608,31 @@ class CreateSite extends WP_CLI_Command {
 			}
 		}
 
-		$fp = fopen( $dev_config_filepath, 'a' );
-		fwrite( $fp, "\n" );
-		fwrite( $fp, "// Local mail catcher\n" );
-		fwrite( $fp, "Config::define( 'SMTP_HOST', '127.0.0.1' );\n" );
-		fwrite( $fp, "Config::define( 'SMTP_PORT', {$port} );\n" );
-		fwrite( $fp, "Config::define( 'SMTP_USER', '' );\n" );
-		fwrite( $fp, "Config::define( 'SMTP_PASS', '' );\n" );
-		fwrite( $fp, "Config::define( 'SMTP_FROM', '' );\n" );
-		fwrite( $fp, "Config::define( 'SMTP_FROMNAME', '' );\n" );
-		fwrite( $fp, "Config::define( 'SMTP_SEC', 'off' );\n" );
-		fwrite( $fp, "Config::define( 'SMTP_AUTH', false );\n" );
-		fclose( $fp );
+		$new_config = "\n";
+		$new_config .= "// Local mail catcher\n";
+		$new_config .= "Config::define( 'SMTP_HOST', '127.0.0.1' );\n";
+		$new_config .= "Config::define( 'SMTP_PORT', {$port} );\n";
+		$new_config .= "Config::define( 'SMTP_USER', '' );\n";
+		$new_config .= "Config::define( 'SMTP_PASS', '' );\n";
+		$new_config .= "Config::define( 'SMTP_FROM', '' );\n";
+		$new_config .= "Config::define( 'SMTP_FROMNAME', '' );\n";
+		$new_config .= "Config::define( 'SMTP_SEC', 'off' );\n";
+		$new_config .= "Config::define( 'SMTP_AUTH', false );\n";
+		$this->add_config_lines(
+			config_filepath: "{$this->install_directory}/config/environments/development.php",
+			new_lines: $new_config,
+			append: true,
+		);
 
 		// Ignore Yoast's llms.txt
-		$fp = fopen( $gitignore_filepath, 'a' );
-		fwrite( $fp, "\n" );
-		fwrite( $fp, "# Yoast\n" );
-		fwrite( $fp, "/web/llms.txt\n" );
-		fclose( $fp );
+		$new_ignore = "\n";
+		$new_ignore .= "# Yoast\n";
+		$new_ignore .= "/web/llms.txt\n";
+		$this->add_config_lines(
+			config_filepath: "{$this->install_directory}/.gitignore",
+			new_lines: $new_ignore,
+			append: true
+		);
 
 		// Kinsta config
 		$kinsta_config = [
@@ -708,9 +713,9 @@ class CreateSite extends WP_CLI_Command {
 		$new_dotenv .= "SPARK_API_USERNAME=\n";
 		$new_dotenv .= "SPARK_API_PASSWORD=\n";
 		$this->add_config_lines(
-			"{$this->install_directory}/.env.example",
-			'WP_SITEURL',
-			$new_dotenv
+			config_filepath: "{$this->install_directory}/.env.example",
+			new_lines: $new_dotenv,
+			after_line_containing: 'WP_SITEURL'
 		);
 
 		// Add the domain to .env
@@ -720,9 +725,9 @@ class CreateSite extends WP_CLI_Command {
 		$new_dotenv .= "SPARK_API_USERNAME=\n";
 		$new_dotenv .= "SPARK_API_PASSWORD=\n";
 		$this->add_config_lines(
-			"{$this->install_directory}/.env",
-			'WP_SITEURL',
-			$new_dotenv
+			config_filepath: "{$this->install_directory}/.env",
+			new_lines: $new_dotenv,
+			after_line_containing: 'WP_SITEURL'
 		);
 
 		$this->commit_repo( 'Add Spark' );
