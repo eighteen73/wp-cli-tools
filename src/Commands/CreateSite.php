@@ -208,7 +208,7 @@ class CreateSite extends WP_CLI_Command {
 	private function check_args( array $assoc_args ) {
 
 		// Simply options (no value allowed)
-		$options = [ 'multisite', 'woocommerce', 'spark' ];
+		$options = [ 'multisite', 'woocommerce', 'spark', 'skip-deployer' ];
 		foreach ( $options as $option ) {
 			if ( isset( $assoc_args[ $option ] ) && $assoc_args[ $option ] === true ) {
 				$this->options[ $option ] = true;
