@@ -83,6 +83,7 @@ class CreateSite extends WP_CLI_Command {
 		'multisite'   => false,
 		'woocommerce' => false,
 		'spark' => false,
+		'skip-deployer' => false,
 		'nebula-branch' => null,
 	];
 
@@ -102,6 +103,9 @@ class CreateSite extends WP_CLI_Command {
 	 *
 	 * [--spark]
 	 * : Include the Spark pattern library
+	 *
+	 * [--skip-deployer]
+	 * : Do not install Deployer
 	 *
 	 * [--nebula-branch]
 	 * : Specify a Nebula branch to use (for development purposes)
@@ -148,6 +152,11 @@ class CreateSite extends WP_CLI_Command {
 		if ( $this->options['woocommerce'] ) {
 			$this->status_message( 'Installing WooCommerce...' );
 			$this->install_woocommerce();
+		}
+
+		if ( ! $this->options['skip-deployer'] ) {
+			$this->status_message( 'Installing Deployer...' );
+			$this->install_deployer();
 		}
 
 		if ( $this->options['multisite'] ) {
@@ -731,6 +740,43 @@ class CreateSite extends WP_CLI_Command {
 		);
 
 		$this->commit_repo( 'Add Spark' );
+
+		WP_CLI::log( '   ... done' );
+	}
+
+
+	/**
+	 * Install and configure Deployer
+	 *
+	 * @return void
+	 */
+	private function install_deployer() {
+		Helpers::composer_command( 'require --dev eighteen73/wordpress-deployer', $this->install_directory );
+
+		$deployer_filepath = "{$this->install_directory}/deploy.php";
+		$deployer_content = [
+			'<?php',
+			'namespace Deployer;',
+			'',
+			"require 'vendor/eighteen73/wordpress-deployer/recipes/kinsta.php';",
+			'',
+			"set('repository', '');",
+			'',
+			"host('live')",
+			"    ->setRemoteUser('')",
+			"    ->setHostname('')",
+			'    ->setPort();',
+		];
+		file_put_contents( $deployer_filepath, implode( "\n", $deployer_content ) );
+
+		$this->add_config_lines(
+			config_filepath: "{$this->install_directory}/web/app/themes/pulsar/.gitignore",
+			new_lines: "\n# Assets are built by Deployer\n/build",
+			append: true
+		);
+
+		Helpers::git_command( 'rm -r --cached web/app/themes/pulsar/build/', $this->install_directory );
+		$this->commit_repo( 'Add Deployer' );
 
 		WP_CLI::log( '   ... done' );
 	}

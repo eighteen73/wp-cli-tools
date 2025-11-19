@@ -264,4 +264,26 @@ class Helpers {
 		}
 		return $result_code === 0;
 	}
+
+	/**
+	 * Recursively deletes a directory and its contents.
+	 *
+	 * @param string $src The path to the directory to be deleted.
+	 * @return void
+	 */
+	public static function rrmdir( string $src ): void {
+		$dir = opendir( $src );
+		while ( false !== ( $file = readdir( $dir ) ) ) {
+			if ( ( $file !== '.' ) && ( $file !== '..' ) ) {
+				$full = $src . '/' . $file;
+				if ( is_dir( $full ) ) {
+					self::rrmdir( $full );
+				} else {
+					unlink( $full );
+				}
+			}
+		}
+		closedir( $dir );
+		rmdir( $src );
+	}
 }
