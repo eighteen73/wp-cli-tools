@@ -112,9 +112,9 @@ class Helpers {
 	/**
 	 * Wun a WP-CLI command
 	 *
-	 * @param string $command Command
-	 * @param string $working_dir Path
-	 * @param bool   $return Return the response
+	 * @param array|string $command Command
+	 * @param string       $working_dir Path
+	 * @param bool         $return Return the response
 	 * @return int|mixed|object|null
 	 */
 	public static function wp_command( $command, $working_dir = null, $return = true ) {
