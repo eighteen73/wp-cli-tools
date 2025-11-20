@@ -112,9 +112,9 @@ class Helpers {
 	/**
 	 * Wun a WP-CLI command
 	 *
-	 * @param string $command Command
-	 * @param string $working_dir Path
-	 * @param bool   $return Return the response
+	 * @param array|string $command Command
+	 * @param string       $working_dir Path
+	 * @param bool         $return Return the response
 	 * @return int|mixed|object|null
 	 */
 	public static function wp_command( $command, $working_dir = null, $return = true ) {
@@ -263,5 +263,27 @@ class Helpers {
 			// A fail just tells is the package isn't installed
 		}
 		return $result_code === 0;
+	}
+
+	/**
+	 * Recursively deletes a directory and its contents.
+	 *
+	 * @param string $src The path to the directory to be deleted.
+	 * @return void
+	 */
+	public static function rrmdir( string $src ): void {
+		$dir = opendir( $src );
+		while ( false !== ( $file = readdir( $dir ) ) ) {
+			if ( ( $file !== '.' ) && ( $file !== '..' ) ) {
+				$full = $src . '/' . $file;
+				if ( is_dir( $full ) ) {
+					self::rrmdir( $full );
+				} else {
+					unlink( $full );
+				}
+			}
+		}
+		closedir( $dir );
+		rmdir( $src );
 	}
 }
