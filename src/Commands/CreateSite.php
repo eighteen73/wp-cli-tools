@@ -83,7 +83,6 @@ class CreateSite extends WP_CLI_Command {
 		'multisite'   => false,
 		'woocommerce' => false,
 		'spark' => false,
-		'skip-deployer' => false,
 		'nebula-branch' => null,
 	];
 
@@ -103,9 +102,6 @@ class CreateSite extends WP_CLI_Command {
 	 *
 	 * [--spark]
 	 * : Include the Spark pattern library
-	 *
-	 * [--skip-deployer]
-	 * : Do not install Deployer
 	 *
 	 * [--nebula-branch]
 	 * : Specify a Nebula branch to use (for development purposes)
@@ -152,11 +148,6 @@ class CreateSite extends WP_CLI_Command {
 		if ( $this->options['woocommerce'] ) {
 			$this->status_message( 'Installing WooCommerce...' );
 			$this->install_woocommerce();
-		}
-
-		if ( ! $this->options['skip-deployer'] ) {
-			$this->status_message( 'Installing Deployer...' );
-			$this->install_deployer();
 		}
 
 		if ( $this->options['multisite'] ) {
@@ -208,7 +199,7 @@ class CreateSite extends WP_CLI_Command {
 	private function check_args( array $assoc_args ) {
 
 		// Simply options (no value allowed)
-		$options = [ 'multisite', 'woocommerce', 'spark', 'skip-deployer' ];
+		$options = [ 'multisite', 'woocommerce', 'spark' ];
 		foreach ( $options as $option ) {
 			if ( isset( $assoc_args[ $option ] ) && $assoc_args[ $option ] === true ) {
 				$this->options[ $option ] = true;
@@ -304,12 +295,10 @@ class CreateSite extends WP_CLI_Command {
 		Helpers::composer_command( 'create-project eighteen73/pulsar ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) . ' --stability=dev' );
 		Helpers::wp_command( 'theme activate pulsar', $this->wp_directory );
 
-		$new_ignore = "!web/app/themes/pulsar/\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/.gitignore",
-			new_lines: $new_ignore,
-			after_line_containing: 'your-custom-theme'
-		);
+		$gitignore_filepath = "{$this->install_directory}/.gitignore";
+		$gitignore = file_get_contents( $gitignore_filepath );
+		$gitignore = str_replace( '#!web/app/themes/your-custom-theme/', "#!web/app/themes/your-custom-theme/\n!web/app/themes/pulsar/", $gitignore );
+		file_put_contents( $gitignore_filepath, $gitignore );
 
 		$this->commit_repo( 'Add Pulsar theme' );
 		WP_CLI::log( '   ... done' );
@@ -412,7 +401,11 @@ class CreateSite extends WP_CLI_Command {
 	 * @return int|mixed|object|null
 	 */
 	private function install_multisite() {
+		$dotenv_filepath = "{$this->install_directory}/.env";
 		$htaccess_filepath = "{$this->install_directory}/web/.htaccess";
+
+		// TODO Can I skip this given that it's set below?
+		// $this->editConfigValue('WP_ALLOW_MULTISITE', true);
 
 		// Gather the multisite options
 		do {
@@ -441,37 +434,60 @@ class CreateSite extends WP_CLI_Command {
 			$options['subdomains'] = null;
 		}
 
+		// Do the install
+		$output = Helpers::wp_command(
+			[
+				'core multisite-install',
+				$options,
+			],
+			$this->wp_directory
+		);
+
 		$domain_current_site = substr( $this->site_url, strpos( $this->site_url, '//' ) + 2 );
+
+		// Add the domain to .env.example
+		$new_dotenv = '';
+		$fp         = fopen( "{$dotenv_filepath}.example", 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Multisite\n";
+			$new_dotenv .= "DOMAIN_CURRENT_SITE=\"\"\n";
+		}
+		fclose( $fp );
+		file_put_contents( "{$dotenv_filepath}.example", $new_dotenv );
+
+		// Add the domain to .env
+		$new_dotenv = '';
+		$fp         = fopen( $dotenv_filepath, 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Multisite\n";
+			$new_dotenv .= 'DOMAIN_CURRENT_SITE="' . $domain_current_site . "\"\n";
+		}
+		fclose( $fp );
+		file_put_contents( $dotenv_filepath, $new_dotenv );
 
 		// Write the new config
 		$multisite_config = [
 			"Config::define( 'WP_ALLOW_MULTISITE', true );",
 			"Config::define( 'MULTISITE', true );",
-			"Config::define( 'SUBDOMAIN_INSTALL', " . ( $subdomain_install ? 'true' : 'false' ) . ' );',
+			"Config::define( 'SUBDOMAIN_INSTALL', " . ( $subdomain_install ? 'true' : 'false' ) . " );\n",
 			"Config::define( 'DOMAIN_CURRENT_SITE', \$_ENV['DOMAIN_CURRENT_SITE'] );",
 			"Config::define( 'PATH_CURRENT_SITE', '/' );",
 			"Config::define( 'SITE_ID_CURRENT_SITE', 1 );",
 			"Config::define( 'BLOG_ID_CURRENT_SITE', 1 );",
 		];
 		$this->add_config_file( 'multisite.php', implode( "\n", $multisite_config ) );
-
-		$new_dotenv = "\n";
-		$new_dotenv .= "# Multisite\n";
-		$new_dotenv .= "DOMAIN_CURRENT_SITE=\"\"\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/.env.example",
-			new_lines: $new_dotenv,
-			after_line_containing: 'WP_SITEURL'
-		);
-
-		$new_dotenv = "\n";
-		$new_dotenv .= "# Multisite\n";
-		$new_dotenv .= "DOMAIN_CURRENT_SITE=\"{$domain_current_site}\"\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/.env",
-			new_lines: $new_dotenv,
-			after_line_containing: 'WP_SITEURL'
-		);
 
 		// Write the .htaccess (this file will not exist yet)
 		$htaccess_content  = "# BEGIN WordPress Multisite\n";
@@ -508,15 +524,6 @@ class CreateSite extends WP_CLI_Command {
 		$htaccess_content .= "# END WordPress Multisite\n";
 		file_put_contents( $htaccess_filepath, $htaccess_content );
 
-		// Do the install
-		$output = Helpers::wp_command(
-			[
-				'core multisite-install',
-				$options,
-			],
-			$this->wp_directory
-		);
-
 		return $output;
 	}
 
@@ -526,6 +533,9 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_plugins() {
+		$dev_config_filepath = "{$this->install_directory}/config/environments/development.php";
+		$gitignore_filepath = "{$this->install_directory}/.gitignore";
+
 		$plugins = [
 			'eighteen73-plugin/kinsta-mu-plugins' => [
 				'activate' => true,
@@ -617,31 +627,25 @@ class CreateSite extends WP_CLI_Command {
 			}
 		}
 
-		$new_config = "\n";
-		$new_config .= "// Local mail catcher\n";
-		$new_config .= "Config::define( 'SMTP_HOST', '127.0.0.1' );\n";
-		$new_config .= "Config::define( 'SMTP_PORT', {$port} );\n";
-		$new_config .= "Config::define( 'SMTP_USER', '' );\n";
-		$new_config .= "Config::define( 'SMTP_PASS', '' );\n";
-		$new_config .= "Config::define( 'SMTP_FROM', '' );\n";
-		$new_config .= "Config::define( 'SMTP_FROMNAME', '' );\n";
-		$new_config .= "Config::define( 'SMTP_SEC', 'off' );\n";
-		$new_config .= "Config::define( 'SMTP_AUTH', false );\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/config/environments/development.php",
-			new_lines: $new_config,
-			append: true,
-		);
+		$fp = fopen( $dev_config_filepath, 'a' );
+		fwrite( $fp, "\n" );
+		fwrite( $fp, "// Local mail catcher\n" );
+		fwrite( $fp, "Config::define( 'SMTP_HOST', '127.0.0.1' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_PORT', {$port} );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_USER', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_PASS', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_FROM', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_FROMNAME', '' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_SEC', 'off' );\n" );
+		fwrite( $fp, "Config::define( 'SMTP_AUTH', false );\n" );
+		fclose( $fp );
 
 		// Ignore Yoast's llms.txt
-		$new_ignore = "\n";
-		$new_ignore .= "# Yoast\n";
-		$new_ignore .= "/web/llms.txt\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/.gitignore",
-			new_lines: $new_ignore,
-			append: true
-		);
+		$fp = fopen( $gitignore_filepath, 'a' );
+		fwrite( $fp, "\n" );
+		fwrite( $fp, "# Yoast\n" );
+		fwrite( $fp, "/web/llms.txt\n" );
+		fclose( $fp );
 
 		// Kinsta config
 		$kinsta_config = [
@@ -704,79 +708,56 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_spark() {
+		$dotenv_filepath = "{$this->install_directory}/.env";
+
 		Helpers::composer_command( 'require eighteen73/spark', $this->install_directory );
 		Helpers::wp_command( 'plugin activate spark', $this->wp_directory );
 
 		// Spark config
 		$spark_config = [
-			"Config::define( 'SPARK_API_URI', \$_ENV['SPARK_API_URI'] ?? '' );",
-			"Config::define( 'SPARK_API_USERNAME', \$_ENV['SPARK_API_USERNAME'] ?? '' );",
-			"Config::define( 'SPARK_API_PASSWORD', \$_ENV['SPARK_API_PASSWORD'] ?? '' );",
+			'Config::define( \'SPARK_API_URI\', $_ENV[\'SPARK_API_URI\'] ?? \'\' );',
+			'Config::define( \'SPARK_API_USERNAME\', $_ENV[\'SPARK_API_USERNAME\'] ?? \'\' );',
+			'Config::define( \'SPARK_API_PASSWORD\', $_ENV[\'SPARK_API_PASSWORD\'] ?? \'\' );',
 		];
 		$this->add_config_file( 'spark.php', implode( "\n", $spark_config ) );
 
 		// Add the domain to .env.example
-		$new_dotenv = "\n";
-		$new_dotenv .= "# Spark\n";
-		$new_dotenv .= "SPARK_API_URI=\n";
-		$new_dotenv .= "SPARK_API_USERNAME=\n";
-		$new_dotenv .= "SPARK_API_PASSWORD=\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/.env.example",
-			new_lines: $new_dotenv,
-			after_line_containing: 'WP_SITEURL'
-		);
+		$new_dotenv = '';
+		$fp         = fopen( "{$dotenv_filepath}.example", 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Spark\n";
+			$new_dotenv .= "SPARK_API_URI=\n";
+			$new_dotenv .= "SPARK_API_USERNAME=\n";
+			$new_dotenv .= "SPARK_API_PASSWORD=\n";
+		}
+		fclose( $fp );
+		file_put_contents( "{$dotenv_filepath}.example", $new_dotenv );
 
 		// Add the domain to .env
-		$new_dotenv = "\n";
-		$new_dotenv .= "# Spark\n";
-		$new_dotenv .= "SPARK_API_URI=\n";
-		$new_dotenv .= "SPARK_API_USERNAME=\n";
-		$new_dotenv .= "SPARK_API_PASSWORD=\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/.env",
-			new_lines: $new_dotenv,
-			after_line_containing: 'WP_SITEURL'
-		);
+		$new_dotenv = '';
+		$fp         = fopen( "{$dotenv_filepath}", 'r' );
+		while ( ! feof( $fp ) ) {
+			$line        = fgets( $fp );
+			$new_dotenv .= $line;
+			if ( ! str_contains( $line, 'WP_SITEURL' ) ) {
+				continue;
+			}
+			$new_dotenv .= "\n";
+			$new_dotenv .= "# Spark\n";
+			$new_dotenv .= "SPARK_API_URI=\n";
+			$new_dotenv .= "SPARK_API_USERNAME=\n";
+			$new_dotenv .= "SPARK_API_PASSWORD=\n";
+		}
+		fclose( $fp );
+		file_put_contents( "{$dotenv_filepath}", $new_dotenv );
 
 		$this->commit_repo( 'Add Spark' );
-
-		WP_CLI::log( '   ... done' );
-	}
-
-
-	/**
-	 * Install and configure Deployer
-	 *
-	 * @return void
-	 */
-	private function install_deployer() {
-		Helpers::composer_command( 'require --dev eighteen73/wordpress-deployer', $this->install_directory );
-
-		$deployer_filepath = "{$this->install_directory}/deploy.php";
-		$deployer_content = [
-			'<?php',
-			'namespace Deployer;',
-			'',
-			"require 'vendor/eighteen73/wordpress-deployer/recipes/kinsta.php';",
-			'',
-			"set('repository', '');",
-			'',
-			"host('live')",
-			"    ->setRemoteUser('')",
-			"    ->setHostname('')",
-			'    ->setPort();',
-		];
-		file_put_contents( $deployer_filepath, implode( "\n", $deployer_content ) );
-
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/web/app/themes/pulsar/.gitignore",
-			new_lines: "\n# Assets are built by Deployer\n/build",
-			append: true
-		);
-
-		Helpers::git_command( 'rm -r --cached web/app/themes/pulsar/build/', $this->install_directory );
-		$this->commit_repo( 'Add Deployer' );
 
 		WP_CLI::log( '   ... done' );
 	}

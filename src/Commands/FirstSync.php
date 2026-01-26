@@ -45,6 +45,19 @@ class FirstSync extends WP_CLI_Command {
 	public function __invoke( array $args, array $assoc_args ) {
 		Helpers::version_check();
 
+		// Get domain from .env if it's a multisite install
+		$env_file = getcwd() . '/.env';
+		$domain_current_site = null;
+		if ( file_exists( $env_file ) ) {
+			$env_contents = file_get_contents( $env_file );
+			if ( preg_match( '/DOMAIN_CURRENT_SITE\s*=\s*(.+)/', $env_contents, $matches ) ) {
+				$domain_current_site = trim( $matches[1], ' "' );
+				if ( empty( $domain_current_site ) ) {
+					$domain_current_site = null;
+				}
+			}
+		}
+
 		/*
 		 * Check for WordPress
 		 * A wp-cli version check  confirms that `composer install` has been run too
@@ -66,18 +79,34 @@ class FirstSync extends WP_CLI_Command {
 		/*
 		 * This is just so we can run `wp eighteen73 sync`, so the weak credentials are never actually used
 		 */
-		$response = Helpers::wp_command(
-			[
-				'core install',
+		if ( $domain_current_site ) {
+			$response = Helpers::wp_command(
 				[
-					'url'            => 'example.com',
-					'title'          => 'Example',
-					'admin_user'     => 'admin',
-					'admin_password' => 'weakpassword',
-					'admin_email'    => 'admin@example.com',
-				],
-			]
-		);
+					'core multisite-install',
+					[
+						'url'            => escapeshellarg( "https://{$domain_current_site}/web" ),
+						'title'          => 'Example',
+						'admin_user'     => 'admin',
+						'admin_password' => 'weakpassword',
+						'admin_email'    => 'admin@example.com',
+					],
+				]
+			);
+		} else {
+			$response = Helpers::wp_command(
+				[
+					'core install',
+					[
+						'url'            => 'example.com',
+						'title'          => 'Example',
+						'admin_user'     => 'admin',
+						'admin_password' => 'weakpassword',
+						'admin_email'    => 'admin@example.com',
+					],
+				]
+			);
+		}
+
 		if ( preg_match( '/already installed/', $response ) ) {
 			WP_CLI::error( 'WordPress is already installed. Use: `wp eighteen73 sync --database`' );
 		} elseif ( preg_match( '/error/', $response ) ) {

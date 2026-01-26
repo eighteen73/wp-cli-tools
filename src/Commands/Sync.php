@@ -75,6 +75,13 @@ class Sync extends WP_CLI_Command {
 	private string $remote_wp = '';
 
 	/**
+	 * Multisite domain (if applicable)
+	 *
+	 * @var string
+	 */
+	private string $domain_current_site = '';
+
+	/**
 	 * Get a remote website's database.
 	 *
 	 * ---
@@ -104,6 +111,7 @@ class Sync extends WP_CLI_Command {
 			WP_CLI::error( 'You are missing some environment config. Refer to the package\'s README at https://github.com/eighteen73/wp-cli-tools' );
 		}
 
+		$this->check_for_multisite();
 		$this->check_for_pv();
 		$this->find_local_wp();
 
@@ -120,6 +128,7 @@ class Sync extends WP_CLI_Command {
 		if ( $this->options['database'] ) {
 			$done_something = true;
 			$this->fetch_database();
+			$this->write_multisite_domain();
 			$this->enable_stripe_test_mode();
 		}
 
@@ -217,6 +226,13 @@ class Sync extends WP_CLI_Command {
 		$this->settings['plugins']['deactivate'] = $deactivated_plugins;
 
 		return true;
+	}
+
+	/**
+	 * Load settings from .env or config (.env takes precedence)
+	 */
+	private function check_for_multisite(): void {
+		$this->domain_current_site = $this->get_config_item( 'DOMAIN_CURRENT_SITE' ) ?? '';
 	}
 
 	/**
@@ -351,6 +367,32 @@ class Sync extends WP_CLI_Command {
 		$pipe    = $this->has_pv ? ' | pv | ' : ' | ';
 		$command = "{$this->settings['ssh_command']} \"bash -c \\\"cd {$this->settings['ssh_path']} && {$this->remote_wp} db export --quiet --single-transaction {$gtid_purged_flag} - | gzip -cf\\\"\" {$pipe} gunzip -c | {$this->local_wp} db import --quiet -";
 		system( $command );
+	}
+
+	/**
+	 * Rewrites important domain settings with the local multisite domain.
+	 *
+	 * @return void
+	 */
+	private function write_multisite_domain() {
+		if ( empty( $this->domain_current_site ) ) {
+			return;
+		}
+
+		$this->print_action_title( 'Writing multisite domain' );
+
+		$queries = [
+			'UPDATE wp_blogs SET domain="' . $this->domain_current_site . '" WHERE blog_id=1;',
+			'UPDATE wp_site SET domain="' . $this->domain_current_site . '" WHERE id=1;',
+		];
+		foreach ( $queries as $query ) {
+			system( "{$this->local_wp} db query " . escapeshellarg( $query ) );
+		}
+
+		$url = "https://{$this->domain_current_site}/wp";
+		system( "{$this->local_wp} option update home " . escapeshellarg( $url ) );
+		system( "{$this->local_wp} option update siteurl " . escapeshellarg( $url ) );
+		system( "{$this->local_wp} site option update siteurl " . escapeshellarg( $url ) );
 	}
 
 	/**
