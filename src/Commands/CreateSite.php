@@ -531,7 +531,15 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
+			'eighteen73/block-theme-developer' => [
+				'activate' => true,
+				'dev' => true,
+			],
 			'eighteen73/pulsar-blocks' => [
+				'activate' => true,
+				'dev' => false,
+			],
+			'eighteen73/pulsar-extensions' => [
 				'activate' => true,
 				'dev' => false,
 			],
