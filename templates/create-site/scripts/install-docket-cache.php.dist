@@ -7,8 +7,8 @@
  */
 
 $content_directory = dirname( __DIR__ ) . '/web/app';
-$source = $content_directory . '/plugins/docket-cache/includes/object-cache.php';
-$destination = $content_directory . '/object-cache.php';
+$source            = $content_directory . '/plugins/docket-cache/includes/object-cache.php';
+$destination       = $content_directory . '/object-cache.php';
 
 if ( ! is_readable( $source ) ) {
 	fwrite( STDERR, "Docket Cache drop-in source is missing. Check the Composer dependency.\n" );
