@@ -1,0 +1,8 @@
+{
+  "$schema": "https://code.eighteen73.co.uk/ci/common/-/raw/main/schemas/autoupdate.schema.json",
+  "targetBranch": "main",
+  "deployerEnvironment": "live",
+  "automaticPatchMerge": true,
+  "automaticMinorMerge": true,
+  "healthCheckUrl": "https://example.com/wp-json/orbit/up"
+}

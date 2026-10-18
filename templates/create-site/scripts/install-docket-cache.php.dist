@@ -1,0 +1,39 @@
+<?php
+/**
+ * Install the matching Docket drop-in after Composer install/update.
+ * Runs without WordPress, database access or HTTP requests during deployment.
+ *
+ * @package Nebula
+ */
+
+$content_directory = dirname( __DIR__ ) . '/web/app';
+$source = $content_directory . '/plugins/docket-cache/includes/object-cache.php';
+$destination = $content_directory . '/object-cache.php';
+
+if ( ! is_readable( $source ) ) {
+	fwrite( STDERR, "Docket Cache drop-in source is missing. Check the Composer dependency.\n" );
+	exit( 1 );
+}
+
+// Another cache backend must be removed deliberately before adopting Docket.
+if ( is_link( $destination ) || ( file_exists( $destination ) && ! preg_match( '~^\s*\*?\s*Plugin URI:\s*https?://wordpress\.org/plugins/docket-cache/?\s*$~mi', file_get_contents( $destination ) ) ) ) {
+	fwrite( STDERR, "An unmanaged object-cache.php exists. Resolve it before installing Docket Cache.\n" );
+	exit( 1 );
+}
+
+if ( file_exists( $destination ) && hash_file( 'sha256', $source ) === hash_file( 'sha256', $destination ) ) {
+	exit( 0 );
+}
+
+// Replace atomically so concurrent requests never read a partially copied file.
+$temporary = tempnam( $content_directory, '.docket-dropin-' );
+if ( $temporary === false ) {
+	fwrite( STDERR, "Could not create a temporary Docket Cache drop-in.\n" );
+	exit( 1 );
+}
+
+if ( ! copy( $source, $temporary ) || ! chmod( $temporary, 0644 ) || ! rename( $temporary, $destination ) ) {
+	unlink( $temporary );
+	fwrite( STDERR, "Could not install the Docket Cache drop-in.\n" );
+	exit( 1 );
+}

@@ -1,0 +1,9 @@
+include:
+  - component: $CI_SERVER_FQDN/ci/common/autoupdate-dependency-update@main
+    inputs:
+      php-version: "8.5"
+
+  # Only needed while the site does not otherwise auto-deploy on merge to main.
+  - component: $CI_SERVER_FQDN/ci/common/autoupdate-patch-deploy@main
+    inputs:
+      php-version: "8.5"
