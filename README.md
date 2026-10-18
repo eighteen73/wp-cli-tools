@@ -68,6 +68,8 @@ Nebula is initially installed with Composer scripts disabled. Its `post-create-p
 
 New sites target PHP 8.5 and require Composer 2.10+. Creation sets `require.php` to `~8.5.0`, Composer's platform PHP to `8.5`, adds the WP Sec Adv repository and configures non-blocking native advisory resolution. Advisory reporting remains enabled.
 
+Imsanity is configured on the initial site with a 2560 × 2560 maximum for all upload sources, preserving aspect ratio, JPEG quality 82, BMP-to-JPEG conversion enabled and PNG-to-JPEG conversion disabled. These remain editable plugin settings. Setup does not run bulk resizing; oversized new uploads replace the originals, so retain source photography separately. Multisite subsites added later use their own/network defaults.
+
 The default Deployer stage also generates `.gitlab-ci.yml`, `renovate.json`, `autoupdate.json`, and `SETUP.md`, with a link from the project's README. These use the agency's shared GitLab components and Renovate preset. Automatic patch/minor merging and live deployments target `main`; the initial local branch remains `develop`.
 
 Replace the repository URL, Kinsta SSH details and live health-check URL before enabling automation. Shared `sync`/`first-sync` SSH placeholders are appended to `config/environments/development.php`, with a remote project path ending in `/public/current`. `SETUP.md` documents the remaining hosting/GitLab setup, local onboarding and daily commands. Optional sync plugin overrides are supplied as comments.

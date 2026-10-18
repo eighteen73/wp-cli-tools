@@ -886,6 +886,22 @@ class CreateSite extends WP_CLI_Command {
 		}
 		Helpers::wp_command( 'plugin activate ' . implode( ' ', $plugins_to_activate ), $this->wp_directory );
 
+		// Imsanity: constrain new uploads without cropping or bulk processing.
+		$imsanity_options = [
+			'imsanity_max_width' => 2560,
+			'imsanity_max_height' => 2560,
+			'imsanity_max_width_library' => 2560,
+			'imsanity_max_height_library' => 2560,
+			'imsanity_max_width_other' => 2560,
+			'imsanity_max_height_other' => 2560,
+			'imsanity_quality' => 82,
+			'imsanity_bmp_to_jpg' => 1,
+			'imsanity_png_to_jpg' => 0,
+		];
+		foreach ( $imsanity_options as $option => $value ) {
+			Helpers::wp_update_option( $option, (string) $value, $this->wp_directory );
+		}
+
 		// Simple SMTP (Pre-fill some Mailgun details for convenience later)
 		$value = escapeshellarg(
 			json_encode(
