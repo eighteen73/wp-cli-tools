@@ -61,6 +61,35 @@ Development SMTP points to a local mail catcher. Check `SMTP_PORT` in
 `config/environments/development.php` matches the catcher on your machine.
 Configure production delivery separately.
 
+## Persistent object caching
+
+Docket Cache is installed and activated on the initial site. Its settings
+live in `config/includes/docket-cache.php`. Object caching is enabled locally and
+on hosting; additional query tweaks, WooCommerce tweaks, preloading and Cronbot
+are disabled. Upstream cache size/expiry defaults remain in place.
+
+Composer install/update runs `scripts/install-docket-cache.php` to generate the
+drop-in matching the installed plugin. Run Composer with scripts enabled. The
+installer does not need WordPress, a database or a running web server, and refuses
+to replace another backend's drop-in. Generated files are not committed.
+
+Cache files (`web/app/cache/docket-cache`) and runtime data
+(`web/app/docket-cache-data`) stay local to each release. Do not add these paths
+or `web/app/object-cache.php` to Deployer's shared lists. New releases start with
+fresh cache storage. Flush the restored release's cache after a rollback.
+
+Use `wp cache status` to inspect Docket and `wp cache flush` to flush it.
+Database sync already invokes a cache flush. Docket can report an error when
+flushing an empty cache. Its CLI-to-web OPcache invalidation uses an authenticated
+HTTP request to `/wp-json/docket-cache/v1/opcache-invalidate`; verify web requests
+observe CLI changes during hosting setup, including when access controls exist.
+The bridge needs runtime data created by the web application and loopback access.
+
+When moving to SQLite or Redis, remove the Docket Composer hooks and configuration,
+disable/remove its drop-in and deactivate the plugin before enabling the new
+backend. Remove its Composer dependency and installer script as part of that
+change so subsequent deployments cannot reinstall the Docket drop-in.
+
 ## Deployment and updates
 
 - Manual deployment: `vendor/bin/dep deploy live`, once hosting is configured.

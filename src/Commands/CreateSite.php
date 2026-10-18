@@ -847,6 +847,11 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => false,
 			],
+			'wpackagist-plugin/docket-cache' => [
+				'activate' => true,
+				'dev' => false,
+				'version' => '^26.4.11',
+			],
 			'wpackagist-plugin/duracelltomi-google-tag-manager' => [
 				'activate' => false,
 				'dev' => false,
@@ -872,9 +877,22 @@ class CreateSite extends WP_CLI_Command {
 		// Add our repo
 		$this->composer_command( 'config repositories.eighteen73 composer https://code.eighteen73.co.uk/pkg/wordpress', $this->install_directory, 'Configuring the plugin repository...' );
 
+		// Prepare Docket's configuration and build hooks before installing plugins.
+		$this->configure_docket_cache();
+
 		// Get the plugins
-		$this->composer_command( 'require ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => ! $plugin['dev'] ) ) ), $this->install_directory );
-		$this->composer_command( 'require --dev ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => $plugin['dev'] ) ) ), $this->install_directory );
+		$production_plugins = [];
+		$development_plugins = [];
+		foreach ( $plugins as $plugin => $options ) {
+			$requirement = escapeshellarg( $plugin . ( isset( $options['version'] ) ? ':' . $options['version'] : '' ) );
+			if ( $options['dev'] ) {
+				$development_plugins[] = $requirement;
+			} else {
+				$production_plugins[] = $requirement;
+			}
+		}
+		$this->composer_command( 'require ' . implode( ' ', $production_plugins ), $this->install_directory );
+		$this->composer_command( 'require --dev ' . implode( ' ', $development_plugins ), $this->install_directory );
 
 		// Activate the plugins
 		$plugins_to_activate = [];
@@ -955,6 +973,31 @@ class CreateSite extends WP_CLI_Command {
 		$this->commit_repo( 'Add house plugins' );
 
 		WP_CLI::log( '   ... done' );
+	}
+
+	/**
+	 * Configure persistent object caching and its database-independent build hook.
+	 *
+	 * @return void
+	 */
+	private function configure_docket_cache(): void {
+		$this->install_project_template( 'config/includes/docket-cache.php' );
+		$this->install_project_template( 'scripts/install-docket-cache.php' );
+		$this->add_config_lines(
+			config_filepath: "{$this->install_directory}/.gitignore",
+			new_lines: "\n# Docket Cache generated files (local to each release)\n/web/app/object-cache.php\n/web/app/cache/docket-cache/\n/web/app/docket-cache-data/\n/web/app/.object-cache*\n",
+			append: true
+		);
+
+		$composer = json_decode( file_get_contents( $this->install_directory . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$installer = '@php scripts/install-docket-cache.php';
+		foreach ( [ 'post-install-cmd', 'post-update-cmd' ] as $event ) {
+			$scripts = (array) ( $composer['scripts'][ $event ] ?? [] );
+			if ( ! in_array( $installer, $scripts, true ) ) {
+				$scripts[] = $installer;
+			}
+			$this->composer_command( 'config scripts.' . $event . ' ' . implode( ' ', array_map( 'escapeshellarg', $scripts ) ), $this->install_directory );
+		}
 	}
 
 	/**
@@ -1090,6 +1133,10 @@ class CreateSite extends WP_CLI_Command {
 		$destination = $this->install_directory . '/' . $filename;
 		if ( file_exists( $destination ) ) {
 			WP_CLI::error( "Cannot scaffold {$filename}: the file already exists. Reconcile the project template before continuing." );
+		}
+		$directory = dirname( $destination );
+		if ( ! is_dir( $directory ) && ! mkdir( $directory, 0777, true ) ) {
+			WP_CLI::error( "Could not create the directory for {$filename}." );
 		}
 		if ( ! copy( dirname( __DIR__, 2 ) . '/templates/create-site/' . $filename . '.dist', $destination ) ) {
 			WP_CLI::error( "Could not create {$filename}." );

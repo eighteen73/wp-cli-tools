@@ -1,0 +1,34 @@
+<?php
+/**
+ * Persistent object caching, without Docket's additional site optimisations.
+ *
+ * @package Nebula
+ */
+
+namespace Eighteen73\Nebula;
+
+use Roots\WPConfig\Config;
+
+// Keep both cache and runtime data inside the physical release, never shared.
+Config::define( 'DOCKET_CACHE_PATH', Config::get( 'WP_CONTENT_DIR' ) . '/cache/docket-cache/' );
+Config::define( 'DOCKET_CACHE_DATA_PATH', Config::get( 'WP_CONTENT_DIR' ) . '/docket-cache-data/' );
+
+// Preserve Docket's CLI-to-web OPcache invalidation bridge.
+Config::define( 'DOCKET_CACHE_WPCLI_OPCACHE', true );
+
+Config::define( 'DOCKET_CACHE_MISC_TWEAKS', false );
+Config::define( 'DOCKET_CACHE_WOOTWEAKS', false );
+Config::define( 'DOCKET_CACHE_WOOADDTOCHARTCRAWLING', false );
+Config::define( 'DOCKET_CACHE_HEADERJUNK', false );
+Config::define( 'DOCKET_CACHE_PINGBACK', false );
+Config::define( 'DOCKET_CACHE_OPTERMCOUNT', false );
+Config::define( 'DOCKET_CACHE_OPTWPQUERY', false );
+Config::define( 'DOCKET_CACHE_CRONBOT', false );
+Config::define( 'DOCKET_CACHE_PAGELOADER', false );
+Config::define( 'DOCKET_CACHE_SIGNATURE', false );
+Config::define( 'DOCKET_CACHE_PRECACHE', false );
+Config::define( 'DOCKET_CACHE_PRELOAD', false );
+Config::define( 'DOCKET_CACHE_MENUCACHE', false );
+Config::define( 'DOCKET_CACHE_MOCACHE', false );
+Config::define( 'DOCKET_CACHE_WPOPTALOAD', false );
+Config::define( 'DOCKET_CACHE_CRONOPTMZDB', 'never' );
