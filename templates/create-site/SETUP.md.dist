@@ -1,0 +1,85 @@
+# Project setup
+
+## Complete the hosting configuration
+
+This project targets Kinsta with PHP 8.5 and Deployer. Local development starts on
+`develop`; the live deployment and Renovate target branch is `main`.
+
+Before enabling automation, complete these project-specific values:
+
+| File | Values to replace |
+| --- | --- |
+| `deploy.php` | GitLab repository SSH URL, `REPLACE_SSH_USER`, `ssh.example.com` and SSH port `0` |
+| `config/environments/development.php` | Matching SSH user, hostname and port; absolute remote project path `/path/to/public/current` |
+| `autoupdate.json` | Replace `https://example.com` with the live origin, retaining `/wp-json/orbit/up` |
+
+Use the actual Kinsta SSH connection details, not the public website hostname.
+The sync path points to the active Deployer project under `public/current`, not
+the `web` directory or an individual numbered release. Deployer itself inherits
+its deployment root and shared paths from the Kinsta recipe.
+
+Create the GitLab project, configure its remote and establish `main` before
+enabling the update workflow. Complete the team's GitLab Renovate onboarding
+and CI credential setup. Provision the Kinsta deployment layout and webroot
+using the team's current first-deployment procedure before the first deployment.
+These files do not provision hosting, credentials or GitLab settings.
+
+## Local onboarding after cloning
+
+Requirements: PHP 8.5, Composer 2.10+, WP-CLI with the eighteen73 commands,
+and Node/npm versions matching `package.json`.
+
+1. Copy `.env.example` to `.env` and supply local database credentials, local URLs,
+   environment type and authentication salts. Never commit `.env`.
+2. Run `composer install` and `npm ci` using the committed lockfiles.
+3. Configure your local web server to serve `web`, with HTTPS matching `.env`.
+4. With an accessible remote site and SSH access, initialise the local database
+   using `wp eighteen73 first-sync`. Read the command documentation first.
+5. Run `npm run build`, or `npm run start` while developing the theme.
+
+Project functionality, including post types and taxonomies, belongs in
+`web/app/mu-plugins/nebula-core`; presentation belongs in
+`web/app/themes/pulsar`. Use `npm run create:post-type`, `npm run create:taxonomy`
+and `npm run create:block` for the supplied generators.
+
+## Database, uploads and email
+
+The SSH settings in `config/environments/development.php` are shared by `sync`
+and `first-sync`. Personal `.env` settings can override the shared sync settings.
+
+- `wp eighteen73 sync`: apply configured plugin overrides only.
+- `wp eighteen73 sync --database`: replace the local database from the remote site.
+- `wp eighteen73 sync --uploads`: download remote uploads.
+- `wp eighteen73 sync --database --uploads`: do both.
+
+Database sync overwrites local data. See the [sync documentation](https://docs.eighteen73.co.uk/wordpress/wp-cli/command/sync.html)
+and [first-sync documentation](https://docs.eighteen73.co.uk/wordpress/wp-cli/command/first-sync.html).
+Optional plugin overrides are commented out in the development configuration;
+enable them to suit the project.
+
+Development SMTP points to a local mail catcher. Check `SMTP_PORT` in
+`config/environments/development.php` matches the catcher on your machine.
+Configure production delivery separately.
+
+## Deployment and updates
+
+- Manual deployment: `vendor/bin/dep deploy live`, once hosting is configured.
+- Deployer builds theme assets; generated theme build output is not committed.
+- Renovate inherits the agency preset in `renovate.json`.
+- `autoupdate.json` enables automatic patch and minor merging into `main`.
+- GitLab CI includes the shared dependency-update and patch-deploy components.
+  Remove the patch-deploy include if another pipeline already deploys on merge
+  to `main`, to avoid duplicate deployments.
+- The patch-deploy workflow uses the live Orbit health endpoint for its
+  post-deployment check and rollback behaviour.
+
+PHP is configured in `composer.json` (`require.php: ~8.5.0` and
+`config.platform.php: 8.5`) and both CI component inputs. Keep these aligned with
+Kinsta when changing PHP versions, and refresh the Composer lockfile.
+
+Composer uses the WP Sec Adv repository and permits advisory-affected versions
+during dependency resolution. `composer audit --lock` still reports advisories
+and exits non-zero when findings exist; review those findings during maintenance.
+
+For local checks use `composer run lint` and `npm run lint`; use `npm run build`
+to verify the production asset build.

@@ -1,0 +1,18 @@
+<?php
+/**
+ * Kinsta deployment configuration. Complete the placeholders in SETUP.md.
+ *
+ * @package Nebula
+ */
+
+namespace Deployer;
+
+require 'vendor/eighteen73/wordpress-deployer/recipes/kinsta.php';
+
+set( 'repository', 'git@code.eighteen73.co.uk:websites/REPLACE_PROJECT.git' );
+
+host( 'live' )
+	->setRemoteUser( 'REPLACE_SSH_USER' )
+	->setHostname( 'ssh.example.com' )
+	->setPort( 0 ) // Replace with the Kinsta SSH port.
+	->set( 'branch', 'main' );

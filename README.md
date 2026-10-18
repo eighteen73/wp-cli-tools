@@ -64,6 +64,16 @@ Composer and npm operations show a scrolling task with up to six lines of live o
 
 Nebula is initially installed with Composer scripts disabled. Its `post-create-project-cmd` wizard then runs separately with terminal input/output attached. Supplied hostname/database values require the coordinated `nebula-tools` release with `SetupOptions` support; older releases are rejected rather than ignoring these values. Without complete setup values, the Nebula wizard requires an interactive Composer session.
 
+### Generated project defaults
+
+New sites target PHP 8.5 and require Composer 2.10+. Creation sets `require.php` to `~8.5.0`, Composer's platform PHP to `8.5`, adds the WP Sec Adv repository and configures non-blocking native advisory resolution. Advisory reporting remains enabled.
+
+The default Deployer stage also generates `.gitlab-ci.yml`, `renovate.json`, `autoupdate.json`, and `SETUP.md`, with a link from the project's README. These use the agency's shared GitLab components and Renovate preset. Automatic patch/minor merging and live deployments target `main`; the initial local branch remains `develop`.
+
+Replace the repository URL, Kinsta SSH details and live health-check URL before enabling automation. Shared `sync`/`first-sync` SSH placeholders are appended to `config/environments/development.php`, with a remote project path ending in `/public/current`. `SETUP.md` documents the remaining hosting/GitLab setup, local onboarding and daily commands. Optional sync plugin overrides are supplied as comments.
+
+`--skip-deployer` omits the deployment, automation, sync and onboarding scaffolding. PHP and Composer defaults still apply. Existing template destination files cause setup to stop rather than being overwritten.
+
 ## Development
 
 To test unreleased `nebula-tools` changes, add this to `create-site`:

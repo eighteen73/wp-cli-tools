@@ -521,7 +521,29 @@ class CreateSite extends WP_CLI_Command {
 			WP_CLI::error( 'Nebula configuration failed. Site creation has stopped.' );
 		}
 
+		$this->configure_project_composer();
 		$this->composer_command( 'update', $this->install_directory, 'Updating Nebula dependencies...' );
+	}
+
+	/**
+	 * Configure the target hosting runtime and advisory reporting.
+	 *
+	 * @return void
+	 */
+	private function configure_project_composer(): void {
+		$repository = [
+			'type' => 'composer',
+			'url' => 'https://repo-wpsecadv.typist.tech',
+			'only' => [ 'roots/wordpress', 'roots/wordpress-no-content', 'wpackagist-plugin/*', 'wpackagist-theme/*' ],
+		];
+		$this->composer_command( 'require --no-update ' . escapeshellarg( 'php:~8.5.0' ) . ' ' . escapeshellarg( 'composer:>=2.10' ), $this->install_directory );
+		$this->composer_command( 'config platform.php 8.5', $this->install_directory );
+		$this->composer_command( 'config policy.advisories.block false', $this->install_directory );
+		$this->composer_command( 'config --unset policy.advisories.ignore-severity', $this->install_directory );
+		$this->composer_command(
+			'config repositories.wpsecadv ' . escapeshellarg( json_encode( $repository, JSON_THROW_ON_ERROR ) ),
+			$this->install_directory
+		);
 	}
 
 	/**
@@ -1012,23 +1034,22 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_deployer() {
-		$this->composer_command( 'require --dev eighteen73/wordpress-deployer', $this->install_directory );
+		$this->composer_command( 'require --dev ' . escapeshellarg( 'eighteen73/wordpress-deployer:^2.0' ), $this->install_directory );
 
-		$deployer_filepath = "{$this->install_directory}/deploy.php";
-		$deployer_content = [
-			'<?php',
-			'namespace Deployer;',
-			'',
-			"require 'vendor/eighteen73/wordpress-deployer/recipes/kinsta.php';",
-			'',
-			"set('repository', '');",
-			'',
-			"host('live')",
-			"    ->setRemoteUser('')",
-			"    ->setHostname('')",
-			'    ->setPort();',
-		];
-		file_put_contents( $deployer_filepath, implode( "\n", $deployer_content ) );
+		foreach ( [ 'deploy.php', '.gitlab-ci.yml', 'autoupdate.json', 'renovate.json', 'SETUP.md' ] as $filename ) {
+			$this->install_project_template( $filename );
+		}
+
+		$this->add_config_lines(
+			config_filepath: "{$this->install_directory}/config/environments/development.php",
+			new_lines: file_get_contents( dirname( __DIR__, 2 ) . '/templates/create-site/sync.php.dist' ),
+			append: true
+		);
+		$this->add_config_lines(
+			config_filepath: "{$this->install_directory}/README.md",
+			new_lines: "\n## Project setup\n\nSee [SETUP.md](SETUP.md) for local onboarding, Kinsta deployment and Renovate configuration.\n",
+			append: true
+		);
 
 		$this->add_config_lines(
 			config_filepath: "{$this->install_directory}/web/app/themes/pulsar/.gitignore",
@@ -1037,8 +1058,25 @@ class CreateSite extends WP_CLI_Command {
 		);
 
 		Helpers::git_command( 'rm -r --cached web/app/themes/pulsar/build/', $this->install_directory );
-		$this->commit_repo( 'Add Deployer' );
+		$this->commit_repo( 'Add Deployer and maintenance configuration' );
+		note( 'Complete the placeholders and hosting setup in SETUP.md before enabling Renovate or deploying.' );
 
 		WP_CLI::log( '   ... done' );
+	}
+
+	/**
+	 * Install a new project configuration file without replacing upstream files.
+	 *
+	 * @param string $filename Project-relative filename
+	 * @return void
+	 */
+	private function install_project_template( string $filename ): void {
+		$destination = $this->install_directory . '/' . $filename;
+		if ( file_exists( $destination ) ) {
+			WP_CLI::error( "Cannot scaffold {$filename}: the file already exists. Reconcile the project template before continuing." );
+		}
+		if ( ! copy( dirname( __DIR__, 2 ) . '/templates/create-site/' . $filename . '.dist', $destination ) ) {
+			WP_CLI::error( "Could not create {$filename}." );
+		}
 	}
 }

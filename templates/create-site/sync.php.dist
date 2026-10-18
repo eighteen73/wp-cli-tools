@@ -1,0 +1,10 @@
+
+// Remote source for wp eighteen73 sync and first-sync. Complete these in SETUP.md.
+Config::define( 'EIGHTEEN73_SSH_HOST', 'ssh.example.com' );
+Config::define( 'EIGHTEEN73_SSH_USER', 'REPLACE_SSH_USER' );
+Config::define( 'EIGHTEEN73_SSH_PORT', 0 ); // Replace with the Kinsta SSH port.
+Config::define( 'EIGHTEEN73_SSH_PATH', '/path/to/public/current' );
+
+// Optional comma-separated plugin slugs to activate/deactivate after syncing.
+// Config::define( 'EIGHTEEN73_SYNC_ACTIVATE_PLUGINS', 'query-monitor,block-theme-developer' );
+// Config::define( 'EIGHTEEN73_SYNC_DEACTIVATE_PLUGINS', '' );
