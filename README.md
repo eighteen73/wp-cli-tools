@@ -8,6 +8,8 @@ A collection of WP-CLI helpers for our team's development workflow.
 
 Prerequisites:
 
+- PHP 8.1 or later, with the JSON and Mbstring extensions
+- Composer 2.2 or later
 - A global copy of [WP-CLI](https://make.wordpress.org/cli/handbook/guides/installing/)
 
 To install the package run the following command:
@@ -35,7 +37,44 @@ Available commands are listed below. Generally they are designed for use on our 
 * `first-sync` - Initialise a local website using a remote database
 * `style-guide` - Add predetermined pages of content for visual checks and sign-off
 
+### Interactive site creation
+
+`create-site` uses Laravel Prompts for setup questions, installation messages and the final website summary. `--yes` skips the installation confirmation, but not missing setup details or the multisite question.
+
+For repeat installations, supply the values whose questions you want to skip:
+
+```shell
+wp eighteen73 create-site foobar \
+  --hostname=foobar.test \
+  --db-name=foobar \
+  --db-user=root \
+  --db-password='secret' \
+  --admin-user=admin \
+  --admin-email=admin@example.com \
+  --yes
+```
+
+Supplied hostnames default to HTTPS; add `--no-https` to use HTTP. Missing values still prompt in an interactive terminal. An explicitly empty `--db-password=''` is supported. Database names accept letters, numbers, underscores and hyphens, up to 64 characters. Supplied credentials are validated without re-prompting on failure. Missing databases are created automatically when Nebula setup values are supplied; existing tables always stop installation and are never deleted, including with `--yes`.
+
+The complete command above runs single-site setup without questions, including when standard input is not a terminal. Multisite network type selection remains interactive. Passwords supplied on the command line can appear in shell history and process listings; Nebula receives its setup values through a child-only environment variable rather than another command-line argument.
+
+Interactive prompts support macOS, Linux and Windows with WSL. Piped input, native Windows and terminals without interactive support use plain questions instead. Missing input stops setup rather than waiting indefinitely.
+
+Composer and npm operations show a scrolling task with up to six lines of live output, followed by a completion summary. This requires PCNTL, POSIX and an interactive terminal with coloured output enabled; otherwise logs are printed normally. Failed processes stop setup and display their full output.
+
+Nebula is initially installed with Composer scripts disabled. Its `post-create-project-cmd` wizard then runs separately with terminal input/output attached. Supplied hostname/database values require the coordinated `nebula-tools` release with `SetupOptions` support; older releases are rejected rather than ignoring these values. Without complete setup values, the Nebula wizard requires an interactive Composer session.
+
 ## Development
+
+To test unreleased `nebula-tools` changes, add this to `create-site`:
+
+```shell
+--nebula-tools-path=/path/to/nebula-tools
+```
+
+The checkout is validated before creating the site. After Nebula is downloaded, Composer installs a mirrored copy of the local package before starting its wizard. Uncommitted source changes are included; the checkout is not modified or symlinked. Relative paths are resolved from the directory where you invoke the command.
+
+This adds a development-only path repository to the generated site's `composer.json` and lockfile, using version `2.0.x-dev` to satisfy Nebula's existing 2.x dependency constraint. Do not deploy that configuration. Use a fresh site directory for each test; this option does not resume or remove a partially created site, or bypass the non-empty database safeguard.
 
 For development, you'll probably want to run a local clone of this package.
 

@@ -9,8 +9,24 @@ namespace Eighteen73\WP_CLI\Commands;
 
 use Eighteen73\WP_CLI\Helpers;
 use Eighteen73\WP_CLI\Traits\WritesConfig;
+use Laravel\Prompts\ConfirmPrompt;
+use Laravel\Prompts\Prompt;
+use Laravel\Prompts\SelectPrompt;
+use Laravel\Prompts\Support\Logger;
+use Laravel\Prompts\TextPrompt;
+use RuntimeException;
 use WP_CLI;
 use WP_CLI_Command;
+
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\task;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
 
 /**
  * Handles a complete eighteen73 WordPress installation and configuration.
@@ -88,6 +104,13 @@ class CreateSite extends WP_CLI_Command {
 	];
 
 	/**
+	 * Supplied values passed privately to Nebula's setup process.
+	 *
+	 * @var array
+	 */
+	private array $setup_options = [];
+
+	/**
 	 * Creates a new website.
 	 *
 	 * ## OPTIONS
@@ -110,6 +133,33 @@ class CreateSite extends WP_CLI_Command {
 	 * [--nebula-branch]
 	 * : Specify a Nebula branch to use (for development purposes)
 	 *
+	 * [--nebula-tools-path=<path>]
+	 * : Install a copy of a local nebula-tools checkout (development only)
+	 *
+	 * [--yes]
+	 * : Skip the installation directory confirmation
+	 *
+	 * [--hostname=<hostname>]
+	 * : Website hostname without a scheme or path (defaults to HTTPS)
+	 *
+	 * [--[no-]https]
+	 * : Set HTTPS explicitly; --no-https uses HTTP
+	 *
+	 * [--db-name=<name>]
+	 * : Database name; create it if missing, but stop if it contains tables
+	 *
+	 * [--db-user=<user>]
+	 * : Database username
+	 *
+	 * [--db-password=<password>]
+	 * : Database password (an explicitly empty value is allowed)
+	 *
+	 * [--admin-user=<username>]
+	 * : WordPress administrator username
+	 *
+	 * [--admin-email=<email>]
+	 * : WordPress administrator email address
+	 *
 	 * ---
 	 *
 	 * ## EXAMPLES
@@ -123,12 +173,14 @@ class CreateSite extends WP_CLI_Command {
 	 */
 	public function __invoke( array $args, array $assoc_args ) {
 		Helpers::version_check();
+		$this->configure_prompts();
+		intro( 'Create an eighteen73 WordPress website' );
 
 		// Check options
 		$this->check_args( $assoc_args );
 
 		// Check PHP and node versions
-		$this->check_path( $args[0] );
+		$this->check_path( $args[0], \WP_CLI\Utils\get_flag_value( $assoc_args, 'yes', false ) );
 
 		$this->status_message( 'Installing WordPress...' );
 		$this->download_nebula();
@@ -160,29 +212,88 @@ class CreateSite extends WP_CLI_Command {
 		}
 
 		if ( $this->options['multisite'] ) {
-			WP_CLI::log( '' );
-			WP_CLI::log( '' );
-			WP_CLI::success( 'Your multisite is ready.' );
-			WP_CLI::log( 'Important: Refer to https://docs.eighteen73.co.uk/wordpress/build-tools/nebula for multisite Apache/NGINX configuration.' );
-			WP_CLI::log( '' );
-			WP_CLI::log( 'Network admin:  ' . $this->site_url . '/wp/wp-admin/network' );
-			WP_CLI::log( '' );
-			WP_CLI::log( 'Website URL:    ' . $this->site_url );
-			WP_CLI::log( 'Website admin:  ' . $this->site_url . '/wp/wp-login.php' );
-			WP_CLI::log( '' );
-			WP_CLI::log( 'Username:       ' . $this->site_username );
-			WP_CLI::log( 'Password:       ' . $this->site_password );
-		} else {
-			WP_CLI::log( '' );
-			WP_CLI::log( '' );
-			WP_CLI::success( 'Your website is ready.' );
-			WP_CLI::log( '' );
-			WP_CLI::log( 'URL:       ' . $this->site_url );
-			WP_CLI::log( 'Admin:     ' . $this->site_url . '/wp/wp-login.php' );
-			WP_CLI::log( '' );
-			WP_CLI::log( 'Username:  ' . $this->site_username );
-			WP_CLI::log( 'Password:  ' . $this->site_password );
+			warning( 'Refer to https://docs.eighteen73.co.uk/wordpress/build-tools/nebula for multisite Apache/NGINX configuration.' );
 		}
+
+		$details = [
+			[ 'URL', $this->site_url ],
+			[ 'Admin', $this->site_url . '/wp/wp-login.php' ],
+			[ 'Username', $this->site_username ],
+			[ 'Password', $this->site_password ],
+		];
+		if ( $this->options['multisite'] ) {
+			$details[] = [ 'Network admin', $this->site_url . '/wp/wp-admin/network' ];
+		}
+		table( [ 'Website details', 'Value' ], $details );
+		outro( $this->options['multisite'] ? 'Your multisite is ready.' : 'Your website is ready.' );
+	}
+
+	/**
+	 * Configure plain input for terminals that cannot render interactive prompts.
+	 *
+	 * @return void
+	 */
+	private function configure_prompts() {
+		Prompt::fallbackWhen( PHP_OS_FAMILY === 'Windows' || ! stream_isatty( STDIN ) || ! stream_isatty( STDOUT ) || getenv( 'TERM' ) === 'dumb' );
+
+		TextPrompt::fallbackUsing(
+			function ( TextPrompt $prompt ) {
+				do {
+					$value = $this->read_response( $prompt->label, $prompt->default );
+					if ( $prompt->transform ) {
+						$value = ( $prompt->transform )( $value );
+					}
+					$error = $prompt->required && $value === '' ? 'A value is required.' : null;
+					if ( ! $error && is_callable( $prompt->validate ) ) {
+						$error = ( $prompt->validate )( $value );
+					}
+					if ( $error ) {
+						WP_CLI::warning( $error );
+					}
+				} while ( $error );
+
+				return $value;
+			}
+		);
+
+		ConfirmPrompt::fallbackUsing(
+			function ( ConfirmPrompt $prompt ) {
+				return strtolower( $this->read_response( $prompt->label . ' [y/n]', $prompt->default ? 'y' : 'n' ) ) === 'y';
+			}
+		);
+
+		SelectPrompt::fallbackUsing(
+			function ( SelectPrompt $prompt ) {
+				$keys = array_keys( $prompt->options );
+				$options = array_values( $prompt->options );
+				foreach ( $options as $key => $label ) {
+					WP_CLI::log( "  [{$key}] {$label}" );
+				}
+				do {
+					$value = $this->read_response( $prompt->label, (string) array_search( $prompt->default, $keys, true ) );
+				} while ( ! array_key_exists( $value, $options ) );
+
+				return $keys[ $value ];
+			}
+		);
+	}
+
+	/**
+	 * Read a plain response, stopping safely if input has ended.
+	 *
+	 * @param string $label Question to display
+	 * @param string $default Default response
+	 * @return string
+	 */
+	private function read_response( string $label, string $default = '' ): string {
+		WP_CLI::log( $label . ( $default !== '' ? " [{$default}]" : '' ) );
+		WP_CLI::out( '> ' );
+		$response = fgets( STDIN );
+		if ( $response === false ) {
+			WP_CLI::error( 'Input ended before setup was complete. Run create-site in an interactive terminal or supply the remaining answers on standard input.' );
+		}
+		$response = trim( $response );
+		return $response === '' ? $default : $response;
 	}
 
 	/**
@@ -192,11 +303,72 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function status_message( string $message ) {
-		WP_CLI::log( '' );
-		WP_CLI::log( str_pad( '', strlen( $message ) + 3, '*' ) );
-		WP_CLI::log( "* {$message}" );
-		WP_CLI::log( str_pad( '', strlen( $message ) + 3, '*' ) );
-		WP_CLI::log( '' );
+		note( $message );
+	}
+
+	/**
+	 * Run a non-interactive process with bounded live output on supported terminals.
+	 *
+	 * @param string      $command Shell command
+	 * @param string      $label Task label
+	 * @param string|null $working_dir Working directory
+	 * @return void
+	 */
+	private function run_task( string $command, string $label, ?string $working_dir = null ): void {
+		$output = '';
+		$run = function ( ?Logger $logger = null ) use ( $command, $working_dir, &$output ) {
+			$descriptors = [
+				0 => [ 'pipe', 'r' ],
+				1 => [ 'pipe', 'w' ],
+				2 => [ 'redirect', 1 ],
+			];
+			$process = proc_open( $command, $descriptors, $pipes, $working_dir );
+			if ( ! is_resource( $process ) ) {
+				throw new RuntimeException( 'Could not start the installation process.' );
+			}
+			fclose( $pipes[0] );
+			try {
+				while ( ( $line = fgets( $pipes[1] ) ) !== false ) {
+					$output .= $line;
+					foreach ( explode( "\r", rtrim( $line, "\r\n" ) ) as $message ) {
+						if ( $logger ) {
+							$logger->line( $message );
+						} else {
+							WP_CLI::log( $message );
+						}
+					}
+				}
+			} finally {
+				fclose( $pipes[1] );
+				$status = proc_close( $process );
+			}
+			if ( $status !== 0 ) {
+				throw new RuntimeException( "Process exited with status {$status}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- CLI diagnostic, WordPress is not loaded.
+			}
+		};
+
+		try {
+			if ( PHP_OS_FAMILY !== 'Windows' && stream_isatty( STDIN ) && stream_isatty( STDOUT ) && getenv( 'TERM' ) !== 'dumb' && function_exists( 'pcntl_fork' ) && function_exists( 'posix_kill' ) && ! WP_CLI::get_config( 'quiet' ) && WP_CLI::get_config( 'color' ) !== false ) {
+				task( label: $label, callback: $run, limit: 6, keepSummary: true );
+			} else {
+				$run();
+				WP_CLI::log( $label . ' Done.' );
+			}
+		} catch ( RuntimeException $exception ) {
+			WP_CLI::error( $label . "\n" . $exception->getMessage() . "\n" . $output );
+		}
+	}
+
+	/**
+	 * Run Composer without allowing questions inside a task display.
+	 *
+	 * @param string      $command Composer arguments
+	 * @param string|null $working_dir Working directory
+	 * @param string      $label Task label
+	 * @return void
+	 */
+	private function composer_command( string $command, ?string $working_dir = null, string $label = 'Installing Composer dependencies...' ): void {
+		$this->run_task( 'composer --no-interaction --no-ansi ' . $command, $label, $working_dir );
 	}
 
 	/**
@@ -206,6 +378,60 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function check_args( array $assoc_args ) {
+		if ( array_key_exists( 'nebula-tools-path', $assoc_args ) ) {
+			$path = $assoc_args['nebula-tools-path'];
+			if ( ! is_string( $path ) || $path === '' || preg_match( '/[\x00\r\n]/', $path ) ) {
+				WP_CLI::error( 'Option --nebula-tools-path requires a local directory path.' );
+			}
+			$path = realpath( $path );
+			if ( $path === false || ! is_readable( $path . '/composer.json' ) ) {
+				WP_CLI::error( 'The --nebula-tools-path directory must contain a readable composer.json.' );
+			}
+			$package = json_decode( file_get_contents( $path . '/composer.json' ), true );
+			if ( ! is_array( $package ) || ( $package['name'] ?? null ) !== 'eighteen73/nebula-tools' ) {
+				WP_CLI::error( 'Option --nebula-tools-path must point to an eighteen73/nebula-tools checkout.' );
+			}
+			$this->options['nebula-tools-path'] = $path;
+		}
+
+		foreach ( [ 'hostname', 'db-name', 'db-user', 'db-password', 'admin-user', 'admin-email' ] as $option ) {
+			if ( ! array_key_exists( $option, $assoc_args ) ) {
+				continue;
+			}
+			$value = $assoc_args[ $option ];
+			if ( ! is_string( $value ) || preg_match( '/[\x00\r\n]/', $value ) ) {
+				WP_CLI::error( "Option --{$option} requires a single-line value." );
+			}
+			if ( $option !== 'db-password' ) {
+				$value = trim( $value );
+				if ( $value === '' ) {
+					WP_CLI::error( "Option --{$option} must not be empty." );
+				}
+			}
+			if ( in_array( $option, [ 'hostname', 'admin-user', 'admin-email' ], true ) ) {
+				$value = strtolower( $value );
+			}
+			if ( $option === 'hostname' && ! filter_var( $value, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME ) ) {
+				WP_CLI::error( 'Use --hostname with a hostname only, without a scheme, port or path.' );
+			}
+			if ( $option === 'db-name' && ( strlen( $value ) > 64 || ! preg_match( '/^[a-zA-Z0-9_-]+$/', $value ) ) ) {
+				WP_CLI::error( 'Database names must contain only letters, numbers, underscores or hyphens, with at most 64 characters.' );
+			}
+			if ( $option === 'admin-email' && ! filter_var( $value, FILTER_VALIDATE_EMAIL ) ) {
+				WP_CLI::error( 'Enter a valid --admin-email address.' );
+			}
+			if ( str_starts_with( $option, 'admin-' ) ) {
+				$this->options[ $option ] = $value;
+			} else {
+				$this->setup_options[ $option ] = $value;
+			}
+		}
+		if ( array_key_exists( 'https', $assoc_args ) ) {
+			if ( ! is_bool( $assoc_args['https'] ) ) {
+				WP_CLI::error( 'Use --https or --no-https without a value.' );
+			}
+			$this->setup_options['https'] = $assoc_args['https'];
+		}
 
 		// Simply options (no value allowed)
 		$options = [ 'multisite', 'woocommerce', 'spark', 'skip-deployer' ];
@@ -226,9 +452,10 @@ class CreateSite extends WP_CLI_Command {
 	 * Check the project's paths
 	 *
 	 * @param string $site_name Website name
+	 * @param bool   $yes Skip the installation confirmation
 	 * @return void
 	 */
-	private function check_path( string $site_name ) {
+	private function check_path( string $site_name, bool $yes = false ) {
 		if ( preg_match( '/^\//', $site_name ) ) {
 			$this->install_directory = rtrim( $site_name, '/' );
 			$this->site_name         = basename( $site_name );
@@ -239,7 +466,12 @@ class CreateSite extends WP_CLI_Command {
 		$this->wp_directory = $this->install_directory . '/web/wp';
 
 		// Get confirmation
-		WP_CLI::confirm( "Installing \"{$this->site_name}\" to \"{$this->install_directory}\". Is this OK?" );
+		if ( ! $yes && ! confirm(
+			label: "Install \"{$this->site_name}\" to \"{$this->install_directory}\"?",
+			default: false,
+		) ) {
+			WP_CLI::halt( 0 );
+		}
 
 		// Is it writable?
 		if ( ! is_dir( $this->install_directory ) ) {
@@ -264,14 +496,60 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function download_nebula() {
-		$command = 'create-project --stability=dev eighteen73/nebula ' . escapeshellarg( $this->install_directory );
+		$command = 'create-project --no-scripts --stability=dev eighteen73/nebula ' . escapeshellarg( $this->install_directory );
 		if ( $this->options['nebula-branch'] ) {
-			$command .= ' dev-' . $this->options['nebula-branch'];
+			$command .= ' ' . escapeshellarg( 'dev-' . $this->options['nebula-branch'] );
 		}
 
-		Helpers::composer_command( $command, null, false );
-		Helpers::composer_command( 'update', $this->install_directory );
-		WP_CLI::log( '   ... done' );
+		$this->composer_command( $command, null, 'Installing Nebula...' );
+		if ( isset( $this->options['nebula-tools-path'] ) ) {
+			$this->install_local_nebula_tools();
+		}
+		if ( $this->setup_options && ! file_exists( $this->install_directory . '/vendor/eighteen73/nebula-tools/includes/classes/SetupOptions.php' ) ) {
+			WP_CLI::error( 'The installed nebula-tools release does not support supplied setup values. Update Nebula to use the coordinated nebula-tools release before retrying.' );
+		}
+
+		// The wizard needs the real terminal, after the dependency task has closed.
+		$descriptors = [
+			0 => STDIN,
+			1 => STDOUT,
+			2 => STDERR,
+		];
+		$environment = array_merge( getenv(), [ 'NEBULA_SETUP_OPTIONS' => json_encode( $this->setup_options, JSON_THROW_ON_ERROR ) ] );
+		$process = proc_open( 'composer run-script post-create-project-cmd', $descriptors, $pipes, $this->install_directory, $environment );
+		if ( ! is_resource( $process ) || proc_close( $process ) !== 0 ) {
+			WP_CLI::error( 'Nebula configuration failed. Site creation has stopped.' );
+		}
+
+		$this->composer_command( 'update', $this->install_directory, 'Updating Nebula dependencies...' );
+	}
+
+	/**
+	 * Install a local development copy without symlinking or changing its checkout.
+	 *
+	 * @return void
+	 */
+	private function install_local_nebula_tools(): void {
+		$repository = [
+			'type' => 'path',
+			'url' => $this->options['nebula-tools-path'],
+			'options' => [
+				'symlink' => false,
+				'reference' => 'none',
+				'versions' => [ 'eighteen73/nebula-tools' => '2.0.x-dev' ],
+			],
+		];
+		warning( 'Development install: the generated project will retain a local nebula-tools path repository. Do not deploy it with this configuration.' );
+		$this->composer_command(
+			'config repositories.nebula-tools-local ' . escapeshellarg( json_encode( $repository, JSON_THROW_ON_ERROR ) ),
+			$this->install_directory,
+			'Configuring local Nebula tools...'
+		);
+		$this->composer_command(
+			'update eighteen73/nebula-tools --with-dependencies --no-scripts',
+			$this->install_directory,
+			'Installing local Nebula tools...'
+		);
 	}
 
 	/**
@@ -301,7 +579,7 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function download_pulsar() {
-		Helpers::composer_command( 'create-project eighteen73/pulsar ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) . ' --stability=dev' );
+		$this->composer_command( 'create-project eighteen73/pulsar ' . escapeshellarg( $this->install_directory . '/web/app/themes/pulsar' ) . ' --stability=dev', null, 'Installing Pulsar...' );
 		Helpers::wp_command( 'theme activate pulsar', $this->wp_directory );
 
 		$new_ignore = "!web/app/themes/pulsar/\n";
@@ -321,9 +599,8 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_node_packages() {
-		Helpers::cli_command( 'npm install --prefix ' . escapeshellarg( $this->install_directory ) );
-		Helpers::cli_command( 'npm prepare --prefix ' . escapeshellarg( $this->install_directory ) );
-		WP_CLI::log( '   ... done' );
+		$this->run_task( 'npm install', 'Installing Node packages...', $this->install_directory );
+		$this->run_task( 'npm run prepare', 'Preparing Node packages...', $this->install_directory );
 	}
 
 	/**
@@ -341,15 +618,19 @@ class CreateSite extends WP_CLI_Command {
 		}
 		fclose( $fp );
 
-		WP_CLI::log( '' );
-		WP_CLI::log( 'Enter your admin username' );
-		WP_CLI::out( '> ' );
-		$this->site_username = strtolower( trim( fgets( STDIN ) ) );
+		$this->site_username = $this->options['admin-user'] ?? text(
+			label: 'Admin username',
+			required: true,
+			transform: fn( string $value ) => strtolower( trim( $value ) ),
+		);
 
-		WP_CLI::log( '' );
-		WP_CLI::log( 'Enter your admin email address' );
-		WP_CLI::out( '> ' );
-		$this->site_email = strtolower( trim( fgets( STDIN ) ) );
+		$this->site_email = $this->options['admin-email'] ?? text(
+			label: 'Admin email address',
+			placeholder: 'you@example.com',
+			required: true,
+			validate: fn( string $value ) => filter_var( $value, FILTER_VALIDATE_EMAIL ) ? null : 'Enter a valid email address.',
+			transform: fn( string $value ) => strtolower( trim( $value ) ),
+		);
 
 		// Install using multisite or not
 		if ( $this->options['multisite'] ) {
@@ -415,18 +696,15 @@ class CreateSite extends WP_CLI_Command {
 		$htaccess_filepath = "{$this->install_directory}/web/.htaccess";
 
 		// Gather the multisite options
-		do {
-			WP_CLI::log( '' );
-			WP_CLI::log( 'Would like sites to use sub-directories or sub-domains: [0]' );
-			WP_CLI::log( '  [0] Sub-directories' );
-			WP_CLI::log( '  [1] Sub-domains' );
-			WP_CLI::out( '> ' );
-			$option = strtolower( trim( fgets( STDIN ) ) );
-			if ( $option === '' ) {
-				$option = '0';
-			}
-		} while ( ! preg_match( '/^[0-1]$/', $option ) );
-		$subdomain_install = $option === '1';
+		$option = select(
+			label: 'How should sites in the network be addressed?',
+			options: [
+				'subdirectories' => 'Sub-directories',
+				'subdomains' => 'Sub-domains',
+			],
+			default: 'subdirectories',
+		);
+		$subdomain_install = $option === 'subdomains';
 
 		$options = [
 			'skip-email'  => null,
@@ -582,11 +860,11 @@ class CreateSite extends WP_CLI_Command {
 		];
 
 		// Add our repo
-		Helpers::composer_command( 'config repositories.eighteen73 composer https://code.eighteen73.co.uk/pkg/wordpress', $this->install_directory );
+		$this->composer_command( 'config repositories.eighteen73 composer https://code.eighteen73.co.uk/pkg/wordpress', $this->install_directory, 'Configuring the plugin repository...' );
 
 		// Get the plugins
-		Helpers::composer_command( 'require ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => ! $plugin['dev'] ) ) ), $this->install_directory );
-		Helpers::composer_command( 'require --dev ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => $plugin['dev'] ) ) ), $this->install_directory );
+		$this->composer_command( 'require ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => ! $plugin['dev'] ) ) ), $this->install_directory );
+		$this->composer_command( 'require --dev ' . implode( ' ', array_keys( array_filter( $plugins, fn( $plugin ) => $plugin['dev'] ) ) ), $this->install_directory );
 
 		// Activate the plugins
 		$plugins_to_activate = [];
@@ -672,7 +950,7 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_woocommerce() {
-		Helpers::composer_command( 'require wpackagist-plugin/woocommerce wpackagist-plugin/woocommerce-gateway-stripe', $this->install_directory );
+		$this->composer_command( 'require wpackagist-plugin/woocommerce wpackagist-plugin/woocommerce-gateway-stripe', $this->install_directory );
 		Helpers::wp_command( 'plugin activate woocommerce woocommerce-gateway-stripe', $this->wp_directory );
 
 		// Options
@@ -712,7 +990,7 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_spark() {
-		Helpers::composer_command( 'require eighteen73/spark', $this->install_directory );
+		$this->composer_command( 'require eighteen73/spark', $this->install_directory );
 		Helpers::wp_command( 'plugin activate spark', $this->wp_directory );
 
 		// Spark config
@@ -759,7 +1037,7 @@ class CreateSite extends WP_CLI_Command {
 	 * @return void
 	 */
 	private function install_deployer() {
-		Helpers::composer_command( 'require --dev eighteen73/wordpress-deployer', $this->install_directory );
+		$this->composer_command( 'require --dev eighteen73/wordpress-deployer', $this->install_directory );
 
 		$deployer_filepath = "{$this->install_directory}/deploy.php";
 		$deployer_content = [
