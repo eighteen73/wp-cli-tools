@@ -813,10 +813,6 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => true,
 			],
-			'eighteen73/pulsar-blocks' => [
-				'activate' => true,
-				'dev' => false,
-			],
 			'eighteen73/pulsar-extensions' => [
 				'activate' => true,
 				'dev' => false,
@@ -841,20 +837,12 @@ class CreateSite extends WP_CLI_Command {
 				'activate' => true,
 				'dev' => true,
 			],
-			'wpackagist-plugin/redirection' => [
-				'activate' => false,
-				'dev' => false,
-			],
 			'wpackagist-plugin/simple-smtp' => [
 				'activate' => true,
 				'dev' => false,
 			],
 			'wpackagist-plugin/two-factor' => [
 				'activate' => true,
-				'dev' => false,
-			],
-			'wpackagist-plugin/wordpress-seo' => [
-				'activate' => false,
 				'dev' => false,
 			],
 		];
@@ -875,9 +863,6 @@ class CreateSite extends WP_CLI_Command {
 			$plugins_to_activate[] = substr( $plugin, strrpos( $plugin, '/' ) + 1 );
 		}
 		Helpers::wp_command( 'plugin activate ' . implode( ' ', $plugins_to_activate ), $this->wp_directory );
-
-		// Redirection
-		Helpers::wp_command( 'redirection database install', $this->wp_directory );
 
 		// Simple SMTP (Pre-fill some Mailgun details for convenience later)
 		$value = escapeshellarg(
@@ -917,16 +902,6 @@ class CreateSite extends WP_CLI_Command {
 			config_filepath: "{$this->install_directory}/config/environments/development.php",
 			new_lines: $new_config,
 			append: true,
-		);
-
-		// Ignore Yoast's llms.txt
-		$new_ignore = "\n";
-		$new_ignore .= "# Yoast\n";
-		$new_ignore .= "/web/llms.txt\n";
-		$this->add_config_lines(
-			config_filepath: "{$this->install_directory}/.gitignore",
-			new_lines: $new_ignore,
-			append: true
 		);
 
 		// Kinsta config
