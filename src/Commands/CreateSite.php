@@ -523,7 +523,6 @@ class CreateSite extends WP_CLI_Command {
 
 		$this->configure_project_composer();
 		$this->composer_command( 'update', $this->install_directory, 'Updating Nebula dependencies...' );
-		$this->composer_command( 'normalize', $this->install_directory, 'Normalising composer.json...' );
 	}
 
 	/**
@@ -540,6 +539,12 @@ class CreateSite extends WP_CLI_Command {
 		$this->composer_command( 'require --no-update ' . escapeshellarg( 'php:~8.5.0' ) . ' ' . escapeshellarg( 'composer:>=2.10' ), $this->install_directory );
 		$this->composer_command( 'config allow-plugins.ergebnis/composer-normalize true', $this->install_directory );
 		$this->composer_command( 'require --dev --no-update ergebnis/composer-normalize', $this->install_directory );
+		$composer = json_decode( file_get_contents( $this->install_directory . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$scripts = (array) ( $composer['scripts']['post-update-cmd'] ?? [] );
+		if ( ! in_array( '@composer normalize', $scripts, true ) ) {
+			$scripts[] = '@composer normalize';
+		}
+		$this->composer_command( 'config scripts.post-update-cmd ' . implode( ' ', array_map( 'escapeshellarg', $scripts ) ), $this->install_directory );
 		$this->composer_command( 'config platform.php 8.5', $this->install_directory );
 		$this->composer_command( 'config policy.advisories.block false', $this->install_directory );
 		$this->composer_command( 'config --unset policy.advisories.ignore-severity', $this->install_directory );
