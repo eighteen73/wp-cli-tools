@@ -36,6 +36,7 @@ Available commands are listed below. Generally they are designed for use on our 
 * `sync` - Import the remote website's database
 * `first-sync` - Initialise a local website using a remote database
 * `style-guide` - Add predetermined pages of content for visual checks and sign-off
+* `word-count` - Count the words in the website's content, e.g. to estimate translation costs
 
 ### Interactive site creation
 
