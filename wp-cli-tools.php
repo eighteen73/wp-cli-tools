@@ -20,6 +20,7 @@ WP_CLI::add_command( 'eighteen73 first-sync', 'Eighteen73\WP_CLI\Commands\FirstS
 WP_CLI::add_command( 'eighteen73 sync', 'Eighteen73\WP_CLI\Commands\Sync' );
 WP_CLI::add_command( 'eighteen73 kinsta-prep', 'Eighteen73\WP_CLI\Commands\KinstaPrep' );
 WP_CLI::add_command( 'eighteen73 style-guide', 'Eighteen73\WP_CLI\Commands\StyleGuide' );
+WP_CLI::add_command( 'eighteen73 word-count', 'Eighteen73\WP_CLI\Commands\WordCount' );
 
 // WP_CLI::add_command('eighteen73 create-plugin', ToDo::class);
 // WP_CLI::add_command('eighteen73 create-block', ToDo::class);
